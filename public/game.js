@@ -300,59 +300,115 @@ class RooftopRunner {
     }
     
     createJumpParticles() {
-        for (let i = 0; i < 10; i++) {
+        // 跳跃粒子 - 更明显的效果
+        for (let i = 0; i < 20; i++) {
             this.particles.push({
                 x: this.player.x + this.player.width / 2,
                 y: this.player.y + this.player.height,
-                velocityX: (Math.random() - 0.5) * 4,
-                velocityY: Math.random() * 2,
-                size: 3 + Math.random() * 3,
+                velocityX: (Math.random() - 0.5) * 6,
+                velocityY: Math.random() * 4 + 2,
+                size: 4 + Math.random() * 5,
                 color: '#64c8ff',
-                life: 30
+                glowColor: '#64c8ff',
+                life: 40,
+                maxLife: 40
             });
         }
+        
+        // 添加跳跃时的视觉提示 - 玩家颜色变化
+        this.player.jumpFlash = 10;
     }
     
     createSlideParticles() {
-        for (let i = 0; i < 8; i++) {
+        // 下滑粒子 - 更明显的效果
+        for (let i = 0; i < 15; i++) {
             this.particles.push({
                 x: this.player.x + this.player.width / 2,
                 y: this.player.y + this.player.height,
-                velocityX: -this.speed + Math.random() * 2,
-                velocityY: -Math.random() * 2,
-                size: 2 + Math.random() * 2,
+                velocityX: -this.speed + Math.random() * 3 - 2,
+                velocityY: -Math.random() * 3 - 1,
+                size: 3 + Math.random() * 4,
                 color: '#ff6b6b',
-                life: 20
+                glowColor: '#ff6b6b',
+                life: 30,
+                maxLife: 30
             });
         }
+        
+        // 添加下滑时的视觉提示
+        this.player.slideFlash = 10;
     }
     
     createCoinParticles(x, y) {
-        for (let i = 0; i < 8; i++) {
-            this.particles.push({
-                x: x,
-                y: y,
-                velocityX: (Math.random() - 0.5) * 6,
-                velocityY: (Math.random() - 0.5) * 6,
-                size: 4 + Math.random() * 4,
-                color: '#ffd700',
-                life: 25
-            });
-        }
-    }
-    
-    createHitParticles(x, y) {
+        // 金币收集粒子 - 更明显的效果
         for (let i = 0; i < 15; i++) {
             this.particles.push({
                 x: x,
                 y: y,
                 velocityX: (Math.random() - 0.5) * 8,
                 velocityY: (Math.random() - 0.5) * 8,
-                size: 3 + Math.random() * 5,
-                color: '#ff4757',
-                life: 30
+                size: 5 + Math.random() * 6,
+                color: '#ffd700',
+                glowColor: '#ffd700',
+                life: 35,
+                maxLife: 35
             });
         }
+        
+        // 添加额外的星星粒子
+        for (let i = 0; i < 8; i++) {
+            this.particles.push({
+                x: x,
+                y: y,
+                velocityX: (Math.random() - 0.5) * 10,
+                velocityY: (Math.random() - 0.5) * 10 - 3,
+                size: 3 + Math.random() * 4,
+                color: '#ffec8b',
+                glowColor: '#ffec8b',
+                life: 40,
+                maxLife: 40,
+                isStar: true
+            });
+        }
+        
+        // 添加金币收集时的视觉提示
+        this.coinFlash = 15;
+    }
+    
+    createHitParticles(x, y) {
+        // 受击粒子 - 更强烈的效果
+        for (let i = 0; i < 25; i++) {
+            this.particles.push({
+                x: x,
+                y: y,
+                velocityX: (Math.random() - 0.5) * 12,
+                velocityY: (Math.random() - 0.5) * 12,
+                size: 5 + Math.random() * 8,
+                color: '#ff4757',
+                glowColor: '#ff4757',
+                life: 40,
+                maxLife: 40
+            });
+        }
+        
+        // 添加额外的警告粒子
+        for (let i = 0; i < 10; i++) {
+            this.particles.push({
+                x: x,
+                y: y,
+                velocityX: (Math.random() - 0.5) * 15,
+                velocityY: (Math.random() - 0.5) * 15,
+                size: 3 + Math.random() * 5,
+                color: '#ff6348',
+                glowColor: '#ff6348',
+                life: 35,
+                maxLife: 35
+            });
+        }
+        
+        // 添加受击时的视觉提示
+        this.player.hitFlash = 20;
+        this.screenShake = 15;
     }
     
     generatePlatforms() {
@@ -419,10 +475,10 @@ class RooftopRunner {
     
     generateObstacle(platform) {
         const obstacleTypes = [
-            { type: 'billboard', width: 60, height: 80, color: '#4a4a6a' },
-            { type: 'ac', width: 50, height: 40, color: '#5a5a7a' },
-            { type: 'bar', width: 80, height: 20, color: '#3a3a5a', low: true },
-            { type: 'billboard', width: 50, height: 70, color: '#4a4a6a' }
+            { type: 'billboard', width: 60, height: 80, color: '#ff4757', glowColor: '#ff6b6b' },
+            { type: 'ac', width: 50, height: 40, color: '#ff6348', glowColor: '#ff7f50' },
+            { type: 'bar', width: 80, height: 20, color: '#ff4757', glowColor: '#ff6b6b', low: true },
+            { type: 'billboard', width: 50, height: 70, color: '#ff4757', glowColor: '#ff6b6b' }
         ];
         
         const obstacleType = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
@@ -490,6 +546,23 @@ class RooftopRunner {
                 this.player.height = 60;
                 this.player.y = this.player.groundY;
             }
+        }
+        
+        // 更新视觉提示变量
+        if (this.player.jumpFlash && this.player.jumpFlash > 0) {
+            this.player.jumpFlash--;
+        }
+        if (this.player.slideFlash && this.player.slideFlash > 0) {
+            this.player.slideFlash--;
+        }
+        if (this.player.hitFlash && this.player.hitFlash > 0) {
+            this.player.hitFlash--;
+        }
+        if (this.coinFlash && this.coinFlash > 0) {
+            this.coinFlash--;
+        }
+        if (this.screenShake && this.screenShake > 0) {
+            this.screenShake--;
         }
         
         // 平台碰撞检测
@@ -675,6 +748,14 @@ class RooftopRunner {
         // 保存状态
         this.ctx.save();
         
+        // 应用屏幕震动效果
+        if (this.screenShake && this.screenShake > 0) {
+            const shakeIntensity = this.screenShake * 0.5;
+            const shakeX = (Math.random() - 0.5) * shakeIntensity;
+            const shakeY = (Math.random() - 0.5) * shakeIntensity;
+            this.ctx.translate(shakeX, shakeY);
+        }
+        
         // 绘制星星背景
         this.drawStars();
         
@@ -699,6 +780,16 @@ class RooftopRunner {
         // 绘制粒子
         this.drawParticles();
         
+        // 绘制金币收集时的全屏闪光效果
+        if (this.coinFlash && this.coinFlash > 0) {
+            this.ctx.save();
+            this.ctx.setTransform(1, 0, 0, 1, 0, 0); // 重置变换
+            const alpha = this.coinFlash / 15 * 0.3;
+            this.ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.restore();
+        }
+        
         // 恢复状态
         this.ctx.restore();
     }
@@ -718,11 +809,12 @@ class RooftopRunner {
     drawBackgrounds(cameraX) {
         for (let i = this.backgrounds.length - 1; i >= 0; i--) {
             const bgLayer = this.backgrounds[i];
-            const alpha = 0.3 + i * 0.2;
+            const alpha = 0.2 + i * 0.1;
             
             for (const building of bgLayer.buildings) {
-                // 绘制建筑物主体
-                this.ctx.fillStyle = `rgba(${30 + i * 20}, ${30 + i * 20}, ${50 + i * 20}, ${alpha})`;
+                // 绘制建筑物主体 - 使用更暗的颜色，与前景区分开
+                const baseGray = 15 + i * 10;
+                this.ctx.fillStyle = `rgba(${baseGray}, ${baseGray}, ${baseGray + 10}, ${alpha})`;
                 this.ctx.fillRect(
                     building.x - cameraX * bgLayer.speed * 0.5,
                     this.canvas.height - building.height,
@@ -730,12 +822,28 @@ class RooftopRunner {
                     building.height
                 );
                 
-                // 绘制窗户
+                // 绘制建筑物轮廓
+                this.ctx.strokeStyle = `rgba(${baseGray + 20}, ${baseGray + 20}, ${baseGray + 30}, ${alpha * 0.5})`;
+                this.ctx.lineWidth = 1;
+                this.ctx.strokeRect(
+                    building.x - cameraX * bgLayer.speed * 0.5,
+                    this.canvas.height - building.height,
+                    building.width,
+                    building.height
+                );
+                
+                // 绘制窗户 - 使用更柔和的颜色
                 for (const window of building.windows) {
                     if (window.lit) {
-                        this.ctx.fillStyle = `rgba(255, 220, 100, ${0.7 * alpha})`;
+                        // 亮窗户 - 使用柔和的暖黄色
+                        this.ctx.fillStyle = `rgba(255, 240, 200, ${0.5 * alpha})`;
+                        // 添加微弱的发光效果
+                        this.ctx.shadowColor = 'rgba(255, 240, 200, 0.3)';
+                        this.ctx.shadowBlur = 5;
                     } else {
-                        this.ctx.fillStyle = `rgba(50, 50, 70, ${0.5 * alpha})`;
+                        // 暗窗户 - 使用非常暗的颜色
+                        this.ctx.fillStyle = `rgba(20, 20, 30, ${0.3 * alpha})`;
+                        this.ctx.shadowBlur = 0;
                     }
                     this.ctx.fillRect(
                         building.x + window.x - cameraX * bgLayer.speed * 0.5,
@@ -743,6 +851,7 @@ class RooftopRunner {
                         window.width,
                         window.height
                     );
+                    this.ctx.shadowBlur = 0;
                 }
             }
         }
@@ -755,25 +864,36 @@ class RooftopRunner {
                 continue;
             }
             
-            // 绘制平台主体
-            this.ctx.fillStyle = '#2a2a4a';
+            // 绘制平台主体 - 使用更暗的中性色，与障碍物区分开
+            this.ctx.fillStyle = '#1a1a2e';
             this.ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
             
-            // 绘制平台顶部边缘
-            this.ctx.fillStyle = '#3a3a5a';
-            this.ctx.fillRect(platform.x, platform.y, platform.width, 10);
+            // 绘制平台顶部边缘 - 使用稍微亮一点的颜色
+            this.ctx.fillStyle = '#16213e';
+            this.ctx.fillRect(platform.x, platform.y, platform.width, 15);
             
-            // 绘制平台纹理
-            this.ctx.fillStyle = '#1a1a3a';
-            for (let i = 0; i < platform.width; i += 40) {
-                this.ctx.fillRect(platform.x + i, platform.y + 15, 2, 5);
+            // 绘制平台纹理 - 更明显的标记
+            this.ctx.fillStyle = '#0f3460';
+            for (let i = 0; i < platform.width; i += 60) {
+                // 绘制水平线
+                this.ctx.fillRect(platform.x + i, platform.y + 20, 40, 3);
+                // 绘制垂直线
+                this.ctx.fillRect(platform.x + i + 20, platform.y + 25, 3, 10);
             }
+            
+            // 平台边缘高光
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+            this.ctx.fillRect(platform.x, platform.y, platform.width, 3);
         }
     }
     
     drawObstacles() {
         for (const obstacle of this.obstacles) {
             this.ctx.save();
+            
+            // 添加发光效果
+            this.ctx.shadowColor = obstacle.glowColor || '#ff6b6b';
+            this.ctx.shadowBlur = 15;
             
             // 根据类型绘制不同的障碍物
             if (obstacle.type === 'billboard') {
@@ -782,35 +902,63 @@ class RooftopRunner {
                 this.ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
                 
                 // 广告牌边框
-                this.ctx.strokeStyle = '#64c8ff';
-                this.ctx.lineWidth = 2;
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.lineWidth = 3;
                 this.ctx.strokeRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
                 
-                // 广告牌内容（简化）
-                this.ctx.fillStyle = '#64c8ff';
-                this.ctx.font = '12px Arial';
+                // 警告符号
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.font = 'bold 24px Arial';
                 this.ctx.textAlign = 'center';
-                this.ctx.fillText('广告', obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2);
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('⚠', obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2);
                 
             } else if (obstacle.type === 'ac') {
                 // 空调外机
                 this.ctx.fillStyle = obstacle.color;
                 this.ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
                 
+                // 空调边框
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.lineWidth = 2;
+                this.ctx.strokeRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                
                 // 空调细节
-                this.ctx.fillStyle = '#4a4a6a';
-                this.ctx.fillRect(obstacle.x + 5, obstacle.y + 5, obstacle.width - 10, 10);
-                this.ctx.fillRect(obstacle.x + 5, obstacle.y + 25, obstacle.width - 10, 10);
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.fillRect(obstacle.x + 5, obstacle.y + 5, obstacle.width - 10, 8);
+                this.ctx.fillRect(obstacle.x + 5, obstacle.y + 25, obstacle.width - 10, 8);
+                
+                // 警告标记
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.font = 'bold 16px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText('!', obstacle.x + obstacle.width / 2, obstacle.y + 17);
                 
             } else if (obstacle.type === 'bar') {
                 // 低矮横杆
                 this.ctx.fillStyle = obstacle.color;
                 this.ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
                 
+                // 横杆边框
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.lineWidth = 2;
+                this.ctx.strokeRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                
                 // 横杆支架
-                this.ctx.fillStyle = '#4a4a6a';
+                this.ctx.fillStyle = '#ff6348';
                 this.ctx.fillRect(obstacle.x, obstacle.y + obstacle.height, 5, 60);
                 this.ctx.fillRect(obstacle.x + obstacle.width - 5, obstacle.y + obstacle.height, 5, 60);
+                
+                // 支架边框
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.strokeRect(obstacle.x, obstacle.y + obstacle.height, 5, 60);
+                this.ctx.strokeRect(obstacle.x + obstacle.width - 5, obstacle.y + obstacle.height, 5, 60);
+                
+                // 横杆上的警告条纹
+                this.ctx.fillStyle = '#ffffff';
+                for (let i = 0; i < obstacle.width; i += 20) {
+                    this.ctx.fillRect(obstacle.x + i, obstacle.y + 5, 10, 10);
+                }
             }
             
             this.ctx.restore();
@@ -823,28 +971,46 @@ class RooftopRunner {
                 this.ctx.save();
                 this.ctx.translate(coin.x, coin.y);
                 
+                // 添加强烈的发光效果
+                this.ctx.shadowColor = '#ffd700';
+                this.ctx.shadowBlur = 20;
+                
                 // 旋转效果
                 const scaleX = Math.cos(coin.rotation);
                 this.ctx.scale(scaleX, 1);
                 
-                // 金币主体
-                this.ctx.fillStyle = '#ffd700';
+                // 金币主体 - 使用更亮的金色
+                this.ctx.fillStyle = '#ffec8b';
                 this.ctx.beginPath();
                 this.ctx.arc(0, 0, coin.radius, 0, Math.PI * 2);
                 this.ctx.fill();
                 
+                // 金币内部渐变
+                const gradient = this.ctx.createRadialGradient(
+                    -coin.radius * 0.3, -coin.radius * 0.3, 0,
+                    0, 0, coin.radius
+                );
+                gradient.addColorStop(0, '#ffffff');
+                gradient.addColorStop(0.3, '#ffec8b');
+                gradient.addColorStop(1, '#ffd700');
+                
+                this.ctx.fillStyle = gradient;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, coin.radius - 2, 0, Math.PI * 2);
+                this.ctx.fill();
+                
                 // 金币边缘
                 this.ctx.strokeStyle = '#ffb700';
-                this.ctx.lineWidth = 2;
+                this.ctx.lineWidth = 3;
                 this.ctx.stroke();
                 
-                // 金币符号
+                // 金币符号 - 使用更明显的颜色
                 if (Math.abs(scaleX) > 0.3) {
-                    this.ctx.fillStyle = '#ffb700';
-                    this.ctx.font = '14px Arial';
+                    this.ctx.fillStyle = '#ff8c00';
+                    this.ctx.font = 'bold 16px Arial';
                     this.ctx.textAlign = 'center';
                     this.ctx.textBaseline = 'middle';
-                    this.ctx.fillText('$', 0, 0);
+                    this.ctx.fillText('★', 0, 0);
                 }
                 
                 this.ctx.restore();
@@ -857,35 +1023,70 @@ class RooftopRunner {
         this.ctx.translate(this.player.x, this.player.y);
         
         // 玩家主体颜色
-        const bodyColor = this.player.isSliding ? '#ff6b6b' : '#64c8ff';
-        const outlineColor = this.player.isSliding ? '#ff4757' : '#4090ff';
+        let bodyColor = this.player.isSliding ? '#ff6b6b' : '#64c8ff';
+        let outlineColor = this.player.isSliding ? '#ff4757' : '#4090ff';
+        let glowIntensity = 0;
+        
+        // 处理闪烁效果
+        if (this.player.hitFlash && this.player.hitFlash > 0) {
+            // 受击闪烁 - 白色/红色交替
+            if (this.player.hitFlash % 4 < 2) {
+                bodyColor = '#ffffff';
+                outlineColor = '#ff4757';
+            }
+            glowIntensity = 20;
+        } else if (this.player.jumpFlash && this.player.jumpFlash > 0) {
+            // 跳跃闪烁 - 蓝色增强
+            glowIntensity = 15;
+        } else if (this.player.slideFlash && this.player.slideFlash > 0) {
+            // 下滑闪烁 - 红色增强
+            glowIntensity = 15;
+        }
+        
+        // 添加发光效果
+        if (glowIntensity > 0) {
+            this.ctx.shadowColor = outlineColor;
+            this.ctx.shadowBlur = glowIntensity;
+        }
         
         // 绘制玩家
         if (this.player.isSliding) {
-            // 下滑状态
+            // 下滑状态 - 更明显的视觉效果
             this.ctx.fillStyle = bodyColor;
             this.ctx.fillRect(0, 0, this.player.width + 20, this.player.height);
             
             // 轮廓
             this.ctx.strokeStyle = outlineColor;
-            this.ctx.lineWidth = 2;
+            this.ctx.lineWidth = 3;
             this.ctx.strokeRect(0, 0, this.player.width + 20, this.player.height);
             
+            // 下滑时的表情 - 眼睛眯起
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.fillRect(8, 10, 8, 3);
+            this.ctx.fillRect(24, 10, 8, 3);
+            
         } else if (this.player.isJumping) {
-            // 跳跃状态
+            // 跳跃状态 - 更明显的视觉效果
             this.ctx.fillStyle = bodyColor;
             this.ctx.fillRect(0, 0, this.player.width, this.player.height);
             
             // 轮廓
             this.ctx.strokeStyle = outlineColor;
-            this.ctx.lineWidth = 2;
+            this.ctx.lineWidth = 3;
             this.ctx.strokeRect(0, 0, this.player.width, this.player.height);
             
-            // 跳跃时的表情（简单的眼睛）
+            // 跳跃时的表情 - 眼睛睁大
             this.ctx.fillStyle = '#ffffff';
             this.ctx.beginPath();
-            this.ctx.arc(10, 15, 5, 0, Math.PI * 2);
-            this.ctx.arc(30, 15, 5, 0, Math.PI * 2);
+            this.ctx.arc(10, 15, 6, 0, Math.PI * 2);
+            this.ctx.arc(30, 15, 6, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // 瞳孔
+            this.ctx.fillStyle = '#000000';
+            this.ctx.beginPath();
+            this.ctx.arc(12, 15, 2, 0, Math.PI * 2);
+            this.ctx.arc(32, 15, 2, 0, Math.PI * 2);
             this.ctx.fill();
             
         } else {
@@ -895,7 +1096,7 @@ class RooftopRunner {
             
             // 轮廓
             this.ctx.strokeStyle = outlineColor;
-            this.ctx.lineWidth = 2;
+            this.ctx.lineWidth = 3;
             this.ctx.strokeRect(0, 0, this.player.width, this.player.height);
             
             // 眼睛
@@ -905,26 +1106,79 @@ class RooftopRunner {
             this.ctx.arc(30, 15, 5, 0, Math.PI * 2);
             this.ctx.fill();
             
+            // 瞳孔
+            this.ctx.fillStyle = '#000000';
+            this.ctx.beginPath();
+            this.ctx.arc(11, 15, 2, 0, Math.PI * 2);
+            this.ctx.arc(31, 15, 2, 0, Math.PI * 2);
+            this.ctx.fill();
+            
             // 奔跑动画效果
-            const legOffset = Math.sin(Date.now() * 0.01) * 5;
+            const legOffset = Math.sin(Date.now() * 0.015) * 8;
             this.ctx.fillStyle = outlineColor;
-            this.ctx.fillRect(5, 50, 10, 10 + legOffset);
-            this.ctx.fillRect(25, 50, 10, 10 - legOffset);
+            this.ctx.fillRect(5, 50, 12, 12 + legOffset);
+            this.ctx.fillRect(23, 50, 12, 12 - legOffset);
         }
         
+        // 清除发光效果
+        this.ctx.shadowBlur = 0;
         this.ctx.restore();
     }
     
     drawParticles() {
         for (const particle of this.particles) {
-            const alpha = particle.life / 30;
+            const alpha = particle.life / (particle.maxLife || 30);
+            const size = particle.size * (0.5 + alpha * 0.5);
+            
+            this.ctx.save();
+            
+            // 添加发光效果
+            if (particle.glowColor) {
+                this.ctx.shadowColor = particle.glowColor;
+                this.ctx.shadowBlur = 15 * alpha;
+            }
+            
             this.ctx.fillStyle = particle.color;
             this.ctx.globalAlpha = alpha;
-            this.ctx.beginPath();
-            this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-            this.ctx.fill();
+            
+            if (particle.isStar) {
+                // 绘制星星形状
+                this.drawStar(particle.x, particle.y, 5, size, size / 2);
+            } else {
+                // 绘制圆形
+                this.ctx.beginPath();
+                this.ctx.arc(particle.x, particle.y, size, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+            
             this.ctx.globalAlpha = 1;
+            this.ctx.shadowBlur = 0;
+            this.ctx.restore();
         }
+    }
+    
+    drawStar(cx, cy, spikes, outerRadius, innerRadius) {
+        let rot = Math.PI / 2 * 3;
+        let step = Math.PI / spikes;
+        
+        this.ctx.beginPath();
+        this.ctx.moveTo(cx, cy - outerRadius);
+        
+        for (let i = 0; i < spikes; i++) {
+            let x = cx + Math.cos(rot) * outerRadius;
+            let y = cy + Math.sin(rot) * outerRadius;
+            this.ctx.lineTo(x, y);
+            rot += step;
+            
+            x = cx + Math.cos(rot) * innerRadius;
+            y = cy + Math.sin(rot) * innerRadius;
+            this.ctx.lineTo(x, y);
+            rot += step;
+        }
+        
+        this.ctx.lineTo(cx, cy - outerRadius);
+        this.ctx.closePath();
+        this.ctx.fill();
     }
     
     async loadLeaderboard() {
