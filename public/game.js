@@ -838,24 +838,37 @@ class RooftopRunner {
     }
     
     drawFloatingTexts() {
+        this.ctx.save();
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0); // 重置变换到屏幕坐标
+        
+        // 将所有浮动文本累积显示在右上角，避免遮挡游戏画面
+        let textOffsetY = 0;
+        
         for (const ft of this.floatingTexts) {
             const alpha = ft.life / ft.maxLife;
+            const fadeOutStart = ft.maxLife * 0.3; // 最后30%时间开始淡出
             
-            this.ctx.save();
             this.ctx.globalAlpha = alpha;
             this.ctx.fillStyle = ft.color;
-            this.ctx.font = 'bold 24px Arial';
-            this.ctx.textAlign = 'center';
+            this.ctx.font = 'bold 20px Arial';
+            this.ctx.textAlign = 'right';
             this.ctx.shadowColor = '#000000';
-            this.ctx.shadowBlur = 4;
+            this.ctx.shadowBlur = 3;
             
-            // 计算屏幕位置
-            const screenX = ft.x - this.player.x + this.canvas.width * 0.3;
-            const screenY = ft.y;
+            // 显示在屏幕右上角，靠近UI区域
+            const screenX = this.canvas.width - 30;
+            const screenY = 120 + textOffsetY;
             
-            this.ctx.fillText(ft.text, screenX, screenY);
-            this.ctx.restore();
+            // 向上飘动效果
+            const floatOffset = (ft.maxLife - ft.life) * 0.5;
+            
+            this.ctx.fillText(ft.text, screenX, screenY - floatOffset);
+            
+            // 每个文本之间有间隔
+            textOffsetY += 30;
         }
+        
+        this.ctx.restore();
     }
     
     drawInvincibleUI() {
@@ -865,50 +878,53 @@ class RooftopRunner {
             // 计算无敌时间剩余百分比
             const remainingPercent = this.invincibleTimer / this.invincibleDuration;
             
-            // 在屏幕中央显示无敌状态提示
+            // 在屏幕左上角显示无敌状态提示，靠近现有UI，不遮挡游戏画面
             this.ctx.setTransform(1, 0, 0, 1, 0, 0); // 重置变换
             
-            const centerX = this.canvas.width / 2;
-            const centerY = this.canvas.height / 2;
+            // 显示在左上角，靠近分数显示
+            const posX = 30;
+            const posY = this.canvas.height < 500 ? 80 : 110; // 根据屏幕高度调整
             
             // 显示恢复提示
             if (this.invincibleTimer < 30) {
                 // 即将恢复时显示更明显的提示
-                const flashAlpha = this.invincibleTimer % 6 < 3 ? 0.8 : 0.4;
+                const flashAlpha = this.invincibleTimer % 6 < 3 ? 0.9 : 0.5;
                 this.ctx.globalAlpha = flashAlpha;
-                this.ctx.fillStyle = '#ffffff';
-                this.ctx.font = 'bold 28px Arial';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText('即将恢复!', centerX, centerY - 50);
+                this.ctx.fillStyle = '#ff6b6b';
+                this.ctx.font = 'bold 16px Arial';
+                this.ctx.textAlign = 'left';
+                this.ctx.fillText('恢复中...', posX, posY);
                 
-                // 显示倒计时
+                // 显示倒计时（小一点）
                 const countdown = Math.ceil(this.invincibleTimer / 60);
-                this.ctx.font = 'bold 48px Arial';
-                this.ctx.fillText(countdown > 0 ? countdown : '!', centerX, centerY);
+                this.ctx.font = 'bold 14px Arial';
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.fillText(countdown > 0 ? countdown + 's' : '!', posX + 70, posY);
             } else {
-                // 正常无敌状态显示
-                this.ctx.globalAlpha = 0.6;
-                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                this.ctx.font = 'bold 20px Arial';
-                this.ctx.textAlign = 'center';
+                // 正常无敌状态显示 - 小而不显眼
+                this.ctx.globalAlpha = 0.5;
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                this.ctx.font = 'bold 14px Arial';
+                this.ctx.textAlign = 'left';
                 
-                // 绘制无敌时间进度条
-                const barWidth = 150;
-                const barHeight = 10;
-                const barX = centerX - barWidth / 2;
-                const barY = centerY - 80;
+                // 绘制小型无敌时间进度条
+                const barWidth = 80;
+                const barHeight = 6;
+                const barX = posX;
+                const barY = posY;
                 
                 // 背景
-                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                this.ctx.fillRect(barX - 2, barY - 2, barWidth + 4, barHeight + 4);
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                this.ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
                 
                 // 进度条
-                this.ctx.fillStyle = '#ffffff';
+                this.ctx.fillStyle = '#64c8ff';
                 this.ctx.fillRect(barX, barY, barWidth * remainingPercent, barHeight);
                 
-                // 文字提示
-                this.ctx.fillStyle = '#ffffff';
-                this.ctx.fillText('无敌状态', centerX, barY - 15);
+                // 文字提示（小一点）
+                this.ctx.fillStyle = 'rgba(100, 200, 255, 0.8)';
+                this.ctx.font = 'bold 12px Arial';
+                this.ctx.fillText('无敌', barX + barWidth + 8, barY + 5);
             }
             
             this.ctx.restore();
