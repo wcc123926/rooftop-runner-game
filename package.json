@@ -1,0 +1,18 @@
+{
+  "name": "rooftop-runner-game",
+  "version": "1.0.0",
+  "description": "横版城市屋顶跑酷小游戏",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["game", "runner", "rooftop"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2"
+  }
+}

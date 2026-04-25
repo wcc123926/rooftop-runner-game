@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>城市屋顶跑酷</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- 开始界面 -->
+        <div id="startScreen" class="screen active">
+            <div class="screen-content">
+                <h1>城市屋顶跑酷</h1>
+                <p class="subtitle">在夜间城市的屋顶上尽情奔跑</p>
+                <button id="startBtn" class="btn btn-primary">开始游戏</button>
+                <div class="controls-info">
+                    <p>操作方式：</p>
+                    <p>⬆️ / 空格 / W - 跳跃</p>
+                    <p>⬇️ / S - 下滑</p>
+                    <p>📱 手机：点击屏幕上半部分跳跃，下半部分下滑</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 游戏UI -->
+        <div id="gameUI" class="game-ui">
+            <div class="score-display">
+                <div class="score-item">
+                    <span class="label">分数</span>
+                    <span id="scoreValue" class="value">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="label">距离</span>
+                    <span id="distanceValue" class="value">0m</span>
+                </div>
+                <div class="score-item">
+                    <span class="label">金币</span>
+                    <span id="coinsValue" class="value">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="label">连击</span>
+                    <span id="comboValue" class="value">x1</span>
+                </div>
+            </div>
+            <div class="health-display">
+                <span class="label">生命</span>
+                <div id="healthBar" class="health-bar">
+                    <div class="health-fill" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 暂停界面 -->
+        <div id="pauseScreen" class="screen">
+            <div class="screen-content">
+                <h2>游戏暂停</h2>
+                <button id="resumeBtn" class="btn btn-primary">继续游戏</button>
+                <button id="restartBtn" class="btn btn-secondary">重新开始</button>
+            </div>
+        </div>
+        
+        <!-- 游戏结束界面 -->
+        <div id="gameOverScreen" class="screen">
+            <div class="screen-content">
+                <h2>游戏结束</h2>
+                <div class="final-score">
+                    <p>最终分数: <span id="finalScore">0</span></p>
+                    <p>距离: <span id="finalDistance">0</span>m</p>
+                    <p>金币: <span id="finalCoins">0</span></p>
+                </div>
+                <div class="name-input">
+                    <label for="playerName">输入昵称保存成绩:</label>
+                    <input type="text" id="playerName" placeholder="你的名字 (最多10字)" maxlength="10">
+                    <button id="saveScoreBtn" class="btn btn-primary">保存成绩</button>
+                </div>
+                <div class="leaderboard-preview" id="leaderboardPreview">
+                    <h3>排行榜</h3>
+                    <div id="leaderboardList"></div>
+                </div>
+                <button id="playAgainBtn" class="btn btn-primary">再来一次</button>
+            </div>
+        </div>
+        
+        <!-- 移动端控制按钮 -->
+        <div id="mobileControls" class="mobile-controls">
+            <div id="jumpBtn" class="control-btn jump-btn">
+                <span>跳跃</span>
+            </div>
+            <div id="slideBtn" class="control-btn slide-btn">
+                <span>下滑</span>
+            </div>
+        </div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,408 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #0a0a1a;
+    color: #ffffff;
+    overflow: hidden;
+    touch-action: manipulation;
+}
+
+.game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#gameCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* 界面样式 */
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 10, 26, 0.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+}
+
+.screen.active {
+    display: flex;
+}
+
+.screen-content {
+    text-align: center;
+    max-width: 90%;
+    padding: 20px;
+    background: rgba(20, 20, 40, 0.8);
+    border-radius: 20px;
+    border: 2px solid rgba(100, 200, 255, 0.3);
+    box-shadow: 0 0 30px rgba(100, 200, 255, 0.2);
+}
+
+h1, h2, h3 {
+    color: #64c8ff;
+    margin-bottom: 20px;
+    text-shadow: 0 0 10px rgba(100, 200, 255, 0.5);
+}
+
+h1 {
+    font-size: 2.5rem;
+}
+
+h2 {
+    font-size: 2rem;
+}
+
+.subtitle {
+    color: #a0a0c0;
+    margin-bottom: 30px;
+    font-size: 1.1rem;
+}
+
+.controls-info {
+    margin-top: 30px;
+    color: #c0c0e0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.controls-info p {
+    margin: 5px 0;
+}
+
+/* 按钮样式 */
+.btn {
+    padding: 12px 30px;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 10px;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #64c8ff, #4090ff);
+    color: white;
+    box-shadow: 0 4px 15px rgba(100, 200, 255, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(100, 200, 255, 0.6);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: #64c8ff;
+    border: 2px solid #64c8ff;
+}
+
+.btn-secondary:hover {
+    background: rgba(100, 200, 255, 0.1);
+}
+
+/* 游戏UI */
+.game-ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 15px;
+    z-index: 50;
+    pointer-events: none;
+}
+
+.score-display {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.score-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 8px 15px;
+    border-radius: 10px;
+    border: 1px solid rgba(100, 200, 255, 0.3);
+}
+
+.score-item .label {
+    font-size: 0.8rem;
+    color: #a0a0c0;
+    margin-bottom: 3px;
+}
+
+.score-item .value {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #64c8ff;
+}
+
+.health-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.health-display .label {
+    color: #ff6b6b;
+    font-weight: bold;
+}
+
+.health-bar {
+    width: 200px;
+    height: 15px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+.health-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff6b6b, #ff4757);
+    transition: width 0.3s ease;
+}
+
+/* 游戏结束界面 */
+.final-score {
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(100, 200, 255, 0.1);
+    border-radius: 10px;
+    border: 1px solid rgba(100, 200, 255, 0.3);
+}
+
+.final-score p {
+    margin: 8px 0;
+    font-size: 1.1rem;
+}
+
+.final-score span {
+    font-weight: bold;
+    color: #64c8ff;
+}
+
+.name-input {
+    margin: 20px 0;
+}
+
+.name-input label {
+    display: block;
+    margin-bottom: 10px;
+    color: #c0c0e0;
+}
+
+.name-input input {
+    padding: 10px 15px;
+    font-size: 1rem;
+    border: 2px solid rgba(100, 200, 255, 0.3);
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    width: 100%;
+    max-width: 250px;
+    margin-bottom: 10px;
+}
+
+.name-input input:focus {
+    outline: none;
+    border-color: #64c8ff;
+}
+
+.leaderboard-preview {
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#leaderboardList {
+    text-align: left;
+}
+
+.leaderboard-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(100, 200, 255, 0.1);
+}
+
+.leaderboard-item:last-child {
+    border-bottom: none;
+}
+
+.leaderboard-rank {
+    color: #64c8ff;
+    font-weight: bold;
+    width: 30px;
+}
+
+.leaderboard-name {
+    flex: 1;
+    text-align: left;
+    margin-left: 10px;
+}
+
+.leaderboard-score {
+    color: #ffd700;
+    font-weight: bold;
+}
+
+/* 移动端控制按钮 */
+.mobile-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-around;
+    z-index: 60;
+    pointer-events: none;
+}
+
+.control-btn {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(100, 200, 255, 0.2);
+    border: 3px solid rgba(100, 200, 255, 0.5);
+    pointer-events: auto;
+    transition: all 0.2s ease;
+}
+
+.control-btn:active {
+    background: rgba(100, 200, 255, 0.5);
+    transform: scale(0.95);
+}
+
+.control-btn span {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #64c8ff;
+}
+
+.jump-btn {
+    margin-right: 20px;
+}
+
+.slide-btn {
+    margin-left: 20px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2rem;
+    }
+    
+    h2 {
+        font-size: 1.5rem;
+    }
+    
+    .score-item {
+        padding: 6px 10px;
+    }
+    
+    .score-item .value {
+        font-size: 1rem;
+    }
+    
+    .health-bar {
+        width: 150px;
+    }
+    
+    .control-btn {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .control-btn span {
+        font-size: 1rem;
+    }
+}
+
+@media (max-height: 500px) {
+    .mobile-controls {
+        bottom: 10px;
+    }
+    
+    .control-btn {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .control-btn span {
+        font-size: 0.9rem;
+    }
+}
+
+/* 隐藏移动端控制按钮在桌面端 */
+@media (min-width: 1024px) and (min-height: 768px) {
+    .mobile-controls {
+        display: none;
+    }
+}
+
+/* 动画效果 */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.pulse {
+    animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-5px);
+    }
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+.shake {
+    animation: shake 0.3s ease-in-out;
+}
