@@ -34,6 +34,10 @@ class RooftopRunner {
         this.coinsList = [];
         this.particles = [];
         this.backgrounds = [];
+        this.floatingTexts = [];
+        this.invincible = false;
+        this.invincibleTimer = 0;
+        this.invincibleDuration = 120;
         
         this.gravity = 0.6;
         this.jumpForce = -15;
@@ -373,6 +377,21 @@ class RooftopRunner {
         
         // 添加金币收集时的视觉提示
         this.coinFlash = 15;
+        
+        // 添加浮动文本显示获得的分数
+        this.createFloatingText(x, y, '+' + (100 * this.combo), '#ffd700');
+    }
+    
+    createFloatingText(x, y, text, color) {
+        this.floatingTexts.push({
+            x: x,
+            y: y,
+            text: text,
+            color: color,
+            life: 60,
+            maxLife: 60,
+            velocityY: -2
+        });
     }
     
     createHitParticles(x, y) {
@@ -565,6 +584,21 @@ class RooftopRunner {
             this.screenShake--;
         }
         
+        // 更新无敌时间
+        if (this.invincible) {
+            this.invincibleTimer--;
+            if (this.invincibleTimer <= 0) {
+                this.invincible = false;
+            }
+        }
+        
+        // 更新浮动文本
+        this.floatingTexts = this.floatingTexts.filter(ft => {
+            ft.y += ft.velocityY;
+            ft.life--;
+            return ft.life > 0;
+        });
+        
         // 平台碰撞检测
         let onPlatform = false;
         let inGap = false;
@@ -612,17 +646,20 @@ class RooftopRunner {
                     continue;
                 }
                 
+                // 如果在无敌状态，不造成伤害
+                if (this.invincible) {
+                    continue;
+                }
+                
                 this.takeDamage(25);
                 this.createHitParticles(
                     this.player.x + this.player.width / 2,
                     this.player.y + this.player.height / 2
                 );
                 
-                // 短暂无敌时间
-                obstacle.collided = true;
-                setTimeout(() => {
-                    obstacle.collided = false;
-                }, 1000);
+                // 启动无敌时间
+                this.invincible = true;
+                this.invincibleTimer = this.invincibleDuration;
                 
                 // 重置连击
                 this.combo = 1;
@@ -792,6 +829,90 @@ class RooftopRunner {
         
         // 恢复状态
         this.ctx.restore();
+        
+        // 绘制浮动文本
+        this.drawFloatingTexts();
+        
+        // 绘制无敌状态提示
+        this.drawInvincibleUI();
+    }
+    
+    drawFloatingTexts() {
+        for (const ft of this.floatingTexts) {
+            const alpha = ft.life / ft.maxLife;
+            
+            this.ctx.save();
+            this.ctx.globalAlpha = alpha;
+            this.ctx.fillStyle = ft.color;
+            this.ctx.font = 'bold 24px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.shadowColor = '#000000';
+            this.ctx.shadowBlur = 4;
+            
+            // 计算屏幕位置
+            const screenX = ft.x - this.player.x + this.canvas.width * 0.3;
+            const screenY = ft.y;
+            
+            this.ctx.fillText(ft.text, screenX, screenY);
+            this.ctx.restore();
+        }
+    }
+    
+    drawInvincibleUI() {
+        if (this.invincible && this.gameState === 'playing') {
+            this.ctx.save();
+            
+            // 计算无敌时间剩余百分比
+            const remainingPercent = this.invincibleTimer / this.invincibleDuration;
+            
+            // 在屏幕中央显示无敌状态提示
+            this.ctx.setTransform(1, 0, 0, 1, 0, 0); // 重置变换
+            
+            const centerX = this.canvas.width / 2;
+            const centerY = this.canvas.height / 2;
+            
+            // 显示恢复提示
+            if (this.invincibleTimer < 30) {
+                // 即将恢复时显示更明显的提示
+                const flashAlpha = this.invincibleTimer % 6 < 3 ? 0.8 : 0.4;
+                this.ctx.globalAlpha = flashAlpha;
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.font = 'bold 28px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText('即将恢复!', centerX, centerY - 50);
+                
+                // 显示倒计时
+                const countdown = Math.ceil(this.invincibleTimer / 60);
+                this.ctx.font = 'bold 48px Arial';
+                this.ctx.fillText(countdown > 0 ? countdown : '!', centerX, centerY);
+            } else {
+                // 正常无敌状态显示
+                this.ctx.globalAlpha = 0.6;
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                this.ctx.font = 'bold 20px Arial';
+                this.ctx.textAlign = 'center';
+                
+                // 绘制无敌时间进度条
+                const barWidth = 150;
+                const barHeight = 10;
+                const barX = centerX - barWidth / 2;
+                const barY = centerY - 80;
+                
+                // 背景
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                this.ctx.fillRect(barX - 2, barY - 2, barWidth + 4, barHeight + 4);
+                
+                // 进度条
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.fillRect(barX, barY, barWidth * remainingPercent, barHeight);
+                
+                // 文字提示
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.fillText('无敌状态', centerX, barY - 15);
+            }
+            
+            this.ctx.restore();
+        }
     }
     
     drawStars() {
@@ -891,9 +1012,52 @@ class RooftopRunner {
         for (const obstacle of this.obstacles) {
             this.ctx.save();
             
-            // 添加发光效果
+            // 计算障碍物与玩家的距离，用于接近警告效果
+            const distanceToPlayer = obstacle.x - this.player.x;
+            let glowIntensity = 15;
+            let warningAlpha = 0;
+            
+            // 当障碍物接近时，增加发光强度并显示警告
+            if (distanceToPlayer > 0 && distanceToPlayer < 400) {
+                glowIntensity = 15 + (400 - distanceToPlayer) / 400 * 20;
+                warningAlpha = (400 - distanceToPlayer) / 400 * 0.6;
+                
+                // 对于低矮横杆，添加特殊的下滑提示
+                if (obstacle.low && distanceToPlayer < 300) {
+                    // 在障碍物上方显示下滑提示
+                    this.ctx.save();
+                    this.ctx.setTransform(1, 0, 0, 1, 0, 0); // 重置变换
+                    
+                    const screenX = obstacle.x - this.player.x + this.canvas.width * 0.3;
+                    const screenY = obstacle.y - 60;
+                    
+                    if (screenX > 0 && screenX < this.canvas.width) {
+                        this.ctx.fillStyle = `rgba(255, 107, 107, ${warningAlpha})`;
+                        this.ctx.font = 'bold 20px Arial';
+                        this.ctx.textAlign = 'center';
+                        this.ctx.fillText('⬇ 下滑!', screenX, screenY);
+                    }
+                    this.ctx.restore();
+                }
+            }
+            
+            // 添加发光效果 - 根据距离调整
             this.ctx.shadowColor = obstacle.glowColor || '#ff6b6b';
-            this.ctx.shadowBlur = 15;
+            this.ctx.shadowBlur = glowIntensity;
+            
+            // 添加接近警告边框
+            if (warningAlpha > 0) {
+                this.ctx.strokeStyle = `rgba(255, 255, 255, ${warningAlpha})`;
+                this.ctx.lineWidth = 3 + warningAlpha * 2;
+                this.ctx.setLineDash([5, 5]);
+                this.ctx.strokeRect(
+                    obstacle.x - 10,
+                    obstacle.y - 10,
+                    obstacle.width + 20,
+                    obstacle.height + 20
+                );
+                this.ctx.setLineDash([]);
+            }
             
             // 根据类型绘制不同的障碍物
             if (obstacle.type === 'billboard') {
@@ -1026,6 +1190,33 @@ class RooftopRunner {
         let bodyColor = this.player.isSliding ? '#ff6b6b' : '#64c8ff';
         let outlineColor = this.player.isSliding ? '#ff4757' : '#4090ff';
         let glowIntensity = 0;
+        let playerAlpha = 1;
+        
+        // 处理无敌状态
+        if (this.invincible) {
+            // 无敌状态闪烁 - 透明度变化
+            if (this.invincibleTimer < 30) {
+                // 即将结束时快速闪烁
+                playerAlpha = this.invincibleTimer % 6 < 3 ? 0.4 : 1;
+            } else {
+                // 正常无敌状态
+                playerAlpha = this.invincibleTimer % 10 < 5 ? 0.6 : 1;
+            }
+            
+            // 无敌光环
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.3 * (1 - this.invincibleTimer / this.invincibleDuration);
+            this.ctx.strokeStyle = '#ffffff';
+            this.ctx.lineWidth = 3;
+            this.ctx.beginPath();
+            const radius = Math.max(this.player.width, this.player.height) + 10;
+            this.ctx.arc(this.player.width / 2, this.player.height / 2, radius, 0, Math.PI * 2);
+            this.ctx.stroke();
+            this.ctx.restore();
+        }
+        
+        // 应用透明度
+        this.ctx.globalAlpha = playerAlpha;
         
         // 处理闪烁效果
         if (this.player.hitFlash && this.player.hitFlash > 0) {
