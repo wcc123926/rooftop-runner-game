@@ -35,7 +35,7 @@ app.get('/api/leaderboard', (req, res) => {
 // 提交成绩
 app.post('/api/leaderboard', (req, res) => {
     try {
-        const { name, score, distance, coins } = req.body;
+        const { name, score, distance, coins, goalType, goalDescription, goalTarget, goalCompleted } = req.body;
         
         if (!name || !score) {
             return res.status(400).json({ error: 'Name and score are required' });
@@ -49,6 +49,10 @@ app.post('/api/leaderboard', (req, res) => {
             score: parseInt(score),
             distance: parseInt(distance) || 0,
             coins: parseInt(coins) || 0,
+            goalType: goalType || null,
+            goalDescription: goalDescription || null,
+            goalTarget: goalTarget || null,
+            goalCompleted: goalCompleted || false,
             date: new Date().toISOString()
         };
         

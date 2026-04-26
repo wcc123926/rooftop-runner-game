@@ -32,12 +32,41 @@ class RooftopRunner {
         this.platforms = [];
         this.obstacles = [];
         this.coinsList = [];
+        this.powerUps = [];
         this.particles = [];
         this.backgrounds = [];
         this.floatingTexts = [];
         this.invincible = false;
         this.invincibleTimer = 0;
         this.invincibleDuration = 120;
+        
+        // 道具状态
+        this.powerUpActive = {
+            shield: false,
+            magnet: false,
+            speedBoots: false
+        };
+        this.powerUpTimers = {
+            shield: 0,
+            magnet: 0,
+            speedBoots: 0
+        };
+        this.powerUpDurations = {
+            shield: 600,
+            magnet: 600,
+            speedBoots: 600
+        };
+        
+        // 小目标系统
+        this.currentGoal = null;
+        this.goalProgress = 0;
+        this.goalTypes = ['coins', 'distance', 'dodge'];
+        this.consecutiveDodges = 0;
+        this.obstaclesPassed = [];
+        
+        // 加速鞋的速度加成
+        this.speedMultiplier = 1;
+        this.baseSpeedMultiplier = 1;
         
         this.gravity = 0.6;
         this.jumpForce = -15;
@@ -227,8 +256,27 @@ class RooftopRunner {
         this.platforms = [];
         this.obstacles = [];
         this.coinsList = [];
+        this.powerUps = [];
         this.particles = [];
         this.lastPlatformX = 0;
+        
+        // 重置道具状态
+        this.powerUpActive = {
+            shield: false,
+            magnet: false,
+            speedBoots: false
+        };
+        this.powerUpTimers = {
+            shield: 0,
+            magnet: 0,
+            speedBoots: 0
+        };
+        this.speedMultiplier = 1;
+        
+        // 重置小目标系统
+        this.consecutiveDodges = 0;
+        this.obstaclesPassed = [];
+        this.generateGoal();
         
         // 初始平台
         this.generateInitialPlatforms();
@@ -248,6 +296,34 @@ class RooftopRunner {
         });
         
         this.lastPlatformX = this.canvas.width * 2;
+    }
+    
+    generateGoal() {
+        const goalType = this.goalTypes[Math.floor(Math.random() * this.goalTypes.length)];
+        let target, description;
+        
+        switch(goalType) {
+            case 'coins':
+                target = 5 + Math.floor(Math.random() * 10);
+                description = `收集 ${target} 个金币`;
+                break;
+            case 'distance':
+                target = 500 + Math.floor(Math.random() * 500);
+                description = `跑到 ${target} 米`;
+                break;
+            case 'dodge':
+                target = 3 + Math.floor(Math.random() * 4);
+                description = `连续躲过 ${target} 个障碍`;
+                break;
+        }
+        
+        this.currentGoal = {
+            type: goalType,
+            target: target,
+            description: description,
+            completed: false
+        };
+        this.goalProgress = 0;
     }
     
     pauseGame() {
@@ -280,6 +356,24 @@ class RooftopRunner {
         document.getElementById('finalScore').textContent = Math.floor(this.score);
         document.getElementById('finalDistance').textContent = Math.floor(this.distance);
         document.getElementById('finalCoins').textContent = this.coins;
+        
+        // 更新小目标完成情况
+        if (this.currentGoal) {
+            const goalStatusEl = document.getElementById('goalStatus');
+            const goalDescriptionEl = document.getElementById('goalDescription');
+            const goalResultEl = document.getElementById('goalResult');
+            
+            goalStatusEl.style.display = 'block';
+            goalDescriptionEl.textContent = this.currentGoal.description;
+            
+            if (this.currentGoal.completed) {
+                goalResultEl.textContent = '✓ 完成!';
+                goalResultEl.style.color = '#00ff00';
+            } else {
+                goalResultEl.textContent = '✗ 未完成';
+                goalResultEl.style.color = '#ff6b6b';
+            }
+        }
         
         // 加载排行榜
         this.loadLeaderboard();
@@ -480,6 +574,11 @@ class RooftopRunner {
             if (Math.random() < 0.5) {
                 this.generateCoins(platform);
             }
+            
+            // 生成道具
+            if (Math.random() < 0.2) {
+                this.generatePowerUp(platform);
+            }
         }
         
         // 移除超出屏幕的平台
@@ -490,6 +589,34 @@ class RooftopRunner {
         
         // 移除超出屏幕的金币
         this.coinsList = this.coinsList.filter(c => c.x > this.player.x - this.canvas.width);
+        
+        // 移除超出屏幕的道具
+        this.powerUps = this.powerUps.filter(p => p.x > this.player.x - this.canvas.width);
+    }
+    
+    generatePowerUp(platform) {
+        const powerUpTypes = [
+            { type: 'shield', name: '护盾', color: '#00ff00', glowColor: '#00ff00' },
+            { type: 'magnet', name: '磁铁', color: '#ff00ff', glowColor: '#ff00ff' },
+            { type: 'speedBoots', name: '加速鞋', color: '#00ffff', glowColor: '#00ffff' }
+        ];
+        
+        const powerUpType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+        const x = platform.x + 100 + Math.random() * (platform.width - 200);
+        const y = this.player.groundY - 80 - Math.random() * 50;
+        
+        this.powerUps.push({
+            x: x,
+            y: y,
+            radius: 18,
+            type: powerUpType.type,
+            name: powerUpType.name,
+            color: powerUpType.color,
+            glowColor: powerUpType.glowColor,
+            collected: false,
+            rotation: 0,
+            bobOffset: Math.random() * Math.PI * 2
+        });
     }
     
     generateObstacle(platform) {
@@ -541,17 +668,31 @@ class RooftopRunner {
     update() {
         if (this.gameState !== 'playing') return;
         
+        // 更新道具计时器
+        this.updatePowerUpTimers();
+        
+        // 计算实际速度（包含加速鞋加成）
+        const effectiveSpeed = this.speed * this.speedMultiplier;
+        
         // 更新速度
         if (this.speed < this.maxSpeed) {
             this.speed += this.speedIncrement;
         }
         
         // 更新距离和分数
-        this.distance += this.speed * 0.1;
+        this.distance += effectiveSpeed * 0.1;
         this.score = this.distance * 10 + this.coins * 100 * this.combo;
         
+        // 更新小目标进度
+        this.updateGoalProgress();
+        
+        // 磁铁效果 - 吸引金币
+        if (this.powerUpActive.magnet) {
+            this.attractCoins();
+        }
+        
         // 玩家移动
-        this.player.x += this.speed;
+        this.player.x += effectiveSpeed;
         
         // 应用重力
         this.player.velocityY += this.gravity;
@@ -638,11 +779,64 @@ class RooftopRunner {
             return;
         }
         
-        // 障碍物碰撞检测
+        // 障碍物碰撞检测和躲避计数
         for (const obstacle of this.obstacles) {
+            const distanceToPlayer = obstacle.x - this.player.x;
+            
+            // 检查障碍物是否已经被玩家通过（用于躲避计数）
+            if (distanceToPlayer < -obstacle.width && !this.obstaclesPassed.includes(obstacle)) {
+                // 玩家成功躲过了这个障碍物
+                this.obstaclesPassed.push(obstacle);
+                
+                // 检查是否是成功躲避（没有碰撞）
+                // 如果障碍物没有被标记为collided，说明成功躲避
+                if (!obstacle.collided) {
+                    if (this.currentGoal && this.currentGoal.type === 'dodge' && !this.currentGoal.completed) {
+                        this.consecutiveDodges++;
+                        this.goalProgress = this.consecutiveDodges;
+                        
+                        if (this.consecutiveDodges >= this.currentGoal.target) {
+                            this.currentGoal.completed = true;
+                            this.createFloatingText(
+                                this.player.x + this.player.width / 2,
+                                this.player.y - 50,
+                                '目标完成!',
+                                '#00ff00'
+                            );
+                        }
+                    }
+                }
+            }
+            
             if (this.checkCollision(this.player, obstacle)) {
                 // 对于低矮横杆，可以通过下滑避开
                 if (obstacle.low && this.player.isSliding) {
+                    continue;
+                }
+                
+                // 标记为已碰撞
+                obstacle.collided = true;
+                
+                // 重置连续躲避计数
+                this.consecutiveDodges = 0;
+                if (this.currentGoal && this.currentGoal.type === 'dodge') {
+                    this.goalProgress = 0;
+                }
+                
+                // 如果有护盾，消耗护盾而不是受伤
+                if (this.powerUpActive.shield) {
+                    this.powerUpActive.shield = false;
+                    this.powerUpTimers.shield = 0;
+                    this.createFloatingText(
+                        this.player.x + this.player.width / 2,
+                        this.player.y - 50,
+                        '护盾抵挡!',
+                        '#00ff00'
+                    );
+                    this.createHitParticles(
+                        this.player.x + this.player.width / 2,
+                        this.player.y + this.player.height / 2
+                    );
                     continue;
                 }
                 
@@ -684,8 +878,41 @@ class RooftopRunner {
                     this.combo++;
                     this.createCoinParticles(coin.x, coin.y);
                     
+                    // 更新小目标进度（金币收集）
+                    if (this.currentGoal && this.currentGoal.type === 'coins' && !this.currentGoal.completed) {
+                        this.goalProgress++;
+                        if (this.goalProgress >= this.currentGoal.target) {
+                            this.currentGoal.completed = true;
+                            this.createFloatingText(
+                                this.player.x + this.player.width / 2,
+                                this.player.y - 50,
+                                '目标完成!',
+                                '#00ff00'
+                            );
+                        }
+                    }
+                    
                     // 更新分数显示
                     this.updateScoreDisplay();
+                }
+            }
+        }
+        
+        // 道具收集
+        for (const powerUp of this.powerUps) {
+            if (!powerUp.collected) {
+                powerUp.rotation += 0.05;
+                
+                // 简单的圆形碰撞检测
+                const playerCenterX = this.player.x + this.player.width / 2;
+                const playerCenterY = this.player.y + this.player.height / 2;
+                const dx = playerCenterX - powerUp.x;
+                const dy = playerCenterY - powerUp.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < powerUp.radius + 25) {
+                    powerUp.collected = true;
+                    this.collectPowerUp(powerUp);
                 }
             }
         }
@@ -704,11 +931,11 @@ class RooftopRunner {
         
         // 更新背景
         for (const bgLayer of this.backgrounds) {
-            bgLayer.x -= this.speed * bgLayer.speed * 0.5;
+            bgLayer.x -= effectiveSpeed * bgLayer.speed * 0.5;
             
             // 循环背景
             for (const building of bgLayer.buildings) {
-                building.x -= this.speed * bgLayer.speed * 0.5;
+                building.x -= effectiveSpeed * bgLayer.speed * 0.5;
                 
                 // 如果建筑超出屏幕左边缘，将其移到右边
                 if (building.x + building.width < 0) {
@@ -731,6 +958,127 @@ class RooftopRunner {
         
         // 更新UI
         this.updateScoreDisplay();
+    }
+    
+    updatePowerUpTimers() {
+        // 护盾
+        if (this.powerUpActive.shield && this.powerUpTimers.shield > 0) {
+            this.powerUpTimers.shield--;
+            if (this.powerUpTimers.shield <= 0) {
+                this.powerUpActive.shield = false;
+            }
+        }
+        
+        // 磁铁
+        if (this.powerUpActive.magnet && this.powerUpTimers.magnet > 0) {
+            this.powerUpTimers.magnet--;
+            if (this.powerUpTimers.magnet <= 0) {
+                this.powerUpActive.magnet = false;
+            }
+        }
+        
+        // 加速鞋
+        if (this.powerUpActive.speedBoots && this.powerUpTimers.speedBoots > 0) {
+            this.powerUpTimers.speedBoots--;
+            if (this.powerUpTimers.speedBoots <= 0) {
+                this.powerUpActive.speedBoots = false;
+                this.speedMultiplier = 1;
+            }
+        }
+    }
+    
+    updateGoalProgress() {
+        if (!this.currentGoal || this.currentGoal.completed) return;
+        
+        if (this.currentGoal.type === 'distance') {
+            this.goalProgress = Math.floor(this.distance);
+            if (this.goalProgress >= this.currentGoal.target) {
+                this.currentGoal.completed = true;
+                this.createFloatingText(
+                    this.player.x + this.player.width / 2,
+                    this.player.y - 50,
+                    '目标完成!',
+                    '#00ff00'
+                );
+            }
+        }
+    }
+    
+    attractCoins() {
+        const playerCenterX = this.player.x + this.player.width / 2;
+        const playerCenterY = this.player.y + this.player.height / 2;
+        const attractRadius = 300;
+        
+        for (const coin of this.coinsList) {
+            if (!coin.collected) {
+                const dx = playerCenterX - coin.x;
+                const dy = playerCenterY - coin.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < attractRadius && distance > 0) {
+                    const speed = 8 * (1 - distance / attractRadius);
+                    coin.x += (dx / distance) * speed;
+                    coin.y += (dy / distance) * speed;
+                }
+            }
+        }
+    }
+    
+    collectPowerUp(powerUp) {
+        switch(powerUp.type) {
+            case 'shield':
+                this.powerUpActive.shield = true;
+                this.powerUpTimers.shield = this.powerUpDurations.shield;
+                this.createFloatingText(
+                    powerUp.x,
+                    powerUp.y,
+                    '获得护盾!',
+                    '#00ff00'
+                );
+                break;
+                
+            case 'magnet':
+                this.powerUpActive.magnet = true;
+                this.powerUpTimers.magnet = this.powerUpDurations.magnet;
+                this.createFloatingText(
+                    powerUp.x,
+                    powerUp.y,
+                    '获得磁铁!',
+                    '#ff00ff'
+                );
+                break;
+                
+            case 'speedBoots':
+                this.powerUpActive.speedBoots = true;
+                this.powerUpTimers.speedBoots = this.powerUpDurations.speedBoots;
+                this.speedMultiplier = 1.5;
+                this.createFloatingText(
+                    powerUp.x,
+                    powerUp.y,
+                    '获得加速!',
+                    '#00ffff'
+                );
+                break;
+        }
+        
+        // 收集粒子效果
+        this.createPowerUpParticles(powerUp.x, powerUp.y, powerUp.color);
+    }
+    
+    createPowerUpParticles(x, y, color) {
+        for (let i = 0; i < 20; i++) {
+            this.particles.push({
+                x: x,
+                y: y,
+                velocityX: (Math.random() - 0.5) * 10,
+                velocityY: (Math.random() - 0.5) * 10,
+                size: 4 + Math.random() * 5,
+                color: color,
+                glowColor: color,
+                life: 40,
+                maxLife: 40
+            });
+        }
     }
     
     checkCollision(player, obstacle) {
@@ -811,6 +1159,9 @@ class RooftopRunner {
         // 绘制金币
         this.drawCoins();
         
+        // 绘制道具
+        this.drawPowerUps();
+        
         // 绘制玩家
         this.drawPlayer();
         
@@ -835,6 +1186,223 @@ class RooftopRunner {
         
         // 绘制无敌状态提示
         this.drawInvincibleUI();
+        
+        // 绘制道具状态UI
+        this.drawPowerUpUI();
+        
+        // 绘制小目标UI
+        this.drawGoalUI();
+    }
+    
+    drawPowerUps() {
+        for (const powerUp of this.powerUps) {
+            if (!powerUp.collected) {
+                this.ctx.save();
+                this.ctx.translate(powerUp.x, powerUp.y);
+                
+                // 上下浮动效果
+                const bobOffset = Math.sin(Date.now() * 0.003 + powerUp.bobOffset) * 8;
+                this.ctx.translate(0, bobOffset);
+                
+                // 添加强烈的发光效果
+                this.ctx.shadowColor = powerUp.glowColor;
+                this.ctx.shadowBlur = 25;
+                
+                // 旋转效果
+                const scaleX = Math.cos(powerUp.rotation);
+                this.ctx.scale(scaleX, 1);
+                
+                // 绘制道具主体 - 圆形背景
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, powerUp.radius, 0, Math.PI * 2);
+                this.ctx.fillStyle = powerUp.color;
+                this.ctx.fill();
+                
+                // 内部渐变效果
+                const gradient = this.ctx.createRadialGradient(
+                    -powerUp.radius * 0.3, -powerUp.radius * 0.3, 0,
+                    0, 0, powerUp.radius
+                );
+                gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+                gradient.addColorStop(0.5, powerUp.color);
+                gradient.addColorStop(1, powerUp.color);
+                
+                this.ctx.fillStyle = gradient;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, powerUp.radius - 3, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // 边缘
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+                
+                // 绘制道具图标
+                if (Math.abs(scaleX) > 0.2) {
+                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                    this.ctx.font = 'bold 18px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    
+                    let icon = '';
+                    switch(powerUp.type) {
+                        case 'shield':
+                            icon = '🛡';
+                            break;
+                        case 'magnet':
+                            icon = '🧲';
+                            break;
+                        case 'speedBoots':
+                            icon = '⚡';
+                            break;
+                    }
+                    this.ctx.fillText(icon, 0, 0);
+                }
+                
+                this.ctx.restore();
+            }
+        }
+    }
+    
+    drawPowerUpUI() {
+        if (this.gameState !== 'playing') return;
+        
+        this.ctx.save();
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        
+        // 显示位置 - 屏幕底部中间上方
+        const startX = this.canvas.width / 2 - 150;
+        const startY = this.canvas.height - 80;
+        let currentX = startX;
+        
+        const activePowerUps = [];
+        
+        if (this.powerUpActive.shield) {
+            activePowerUps.push({
+                type: 'shield',
+                name: '护盾',
+                timer: this.powerUpTimers.shield,
+                duration: this.powerUpDurations.shield,
+                color: '#00ff00',
+                icon: '🛡'
+            });
+        }
+        
+        if (this.powerUpActive.magnet) {
+            activePowerUps.push({
+                type: 'magnet',
+                name: '磁铁',
+                timer: this.powerUpTimers.magnet,
+                duration: this.powerUpDurations.magnet,
+                color: '#ff00ff',
+                icon: '🧲'
+            });
+        }
+        
+        if (this.powerUpActive.speedBoots) {
+            activePowerUps.push({
+                type: 'speedBoots',
+                name: '加速',
+                timer: this.powerUpTimers.speedBoots,
+                duration: this.powerUpDurations.speedBoots,
+                color: '#00ffff',
+                icon: '⚡'
+            });
+        }
+        
+        // 计算总宽度以居中
+        const totalWidth = activePowerUps.length * 100 - 20;
+        let x = this.canvas.width / 2 - totalWidth / 2;
+        
+        for (const powerUp of activePowerUps) {
+            const remainingPercent = powerUp.timer / powerUp.duration;
+            const remainingSeconds = Math.ceil(powerUp.timer / 60);
+            
+            // 背景
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            this.ctx.fillRect(x, startY, 80, 50);
+            
+            // 边框
+            this.ctx.strokeStyle = powerUp.color;
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(x, startY, 80, 50);
+            
+            // 图标
+            this.ctx.font = 'bold 20px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillStyle = powerUp.color;
+            this.ctx.fillText(powerUp.icon, x + 40, startY + 22);
+            
+            // 倒计时
+            this.ctx.font = 'bold 12px Arial';
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.fillText(remainingSeconds + 's', x + 40, startY + 42);
+            
+            // 进度条背景
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            this.ctx.fillRect(x + 5, startY + 45, 70, 4);
+            
+            // 进度条
+            this.ctx.fillStyle = powerUp.color;
+            this.ctx.fillRect(x + 5, startY + 45, 70 * remainingPercent, 4);
+            
+            x += 90;
+        }
+        
+        this.ctx.restore();
+    }
+    
+    drawGoalUI() {
+        if (!this.currentGoal || this.gameState !== 'playing') return;
+        
+        this.ctx.save();
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        
+        // 显示位置 - 屏幕顶部中央
+        const posX = this.canvas.width / 2;
+        const posY = 150;
+        
+        // 背景
+        this.ctx.fillStyle = this.currentGoal.completed ? 'rgba(0, 255, 0, 0.2)' : 'rgba(0, 0, 0, 0.6)';
+        this.ctx.fillRect(posX - 120, posY - 30, 240, 60);
+        
+        // 边框
+        this.ctx.strokeStyle = this.currentGoal.completed ? '#00ff00' : '#64c8ff';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(posX - 120, posY - 30, 240, 60);
+        
+        // 标题
+        this.ctx.font = 'bold 14px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillStyle = this.currentGoal.completed ? '#00ff00' : '#c0c0e0';
+        this.ctx.fillText(this.currentGoal.completed ? '✓ 目标完成!' : '小目标', posX, posY - 10);
+        
+        // 描述
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.fillStyle = this.currentGoal.completed ? '#00ff00' : '#ffffff';
+        this.ctx.fillText(this.currentGoal.description, posX, posY + 12);
+        
+        // 进度
+        if (!this.currentGoal.completed) {
+            this.ctx.font = 'bold 12px Arial';
+            this.ctx.fillStyle = '#64c8ff';
+            
+            let progressText = '';
+            switch(this.currentGoal.type) {
+                case 'coins':
+                    progressText = `${this.goalProgress}/${this.currentGoal.target}`;
+                    break;
+                case 'distance':
+                    progressText = `${Math.floor(this.distance)}/${this.currentGoal.target}m`;
+                    break;
+                case 'dodge':
+                    progressText = `${this.goalProgress}/${this.currentGoal.target}`;
+                    break;
+            }
+            this.ctx.fillText(progressText, posX, posY + 28);
+        }
+        
+        this.ctx.restore();
     }
     
     drawFloatingTexts() {
@@ -1410,9 +1978,15 @@ class RooftopRunner {
                 else if (index === 1) rankColor = '#c0c0c0'; // 银牌
                 else if (index === 2) rankColor = '#cd7f32'; // 铜牌
                 
+                const goalStatus = entry.goalCompleted ? '✓' : '✗';
+                const goalColor = entry.goalCompleted ? '#00ff00' : '#ff6b6b';
+                
                 item.innerHTML = `
                     <span class="leaderboard-rank" style="color: ${rankColor}">${index + 1}</span>
-                    <span class="leaderboard-name">${entry.name}</span>
+                    <span class="leaderboard-name">
+                        ${entry.name}
+                        ${entry.goalType ? `<span class="goal-badge" style="color: ${goalColor}; margin-left: 8px; font-size: 0.85rem;">${goalStatus}</span>` : ''}
+                    </span>
                     <span class="leaderboard-score">${entry.score}</span>
                 `;
                 
@@ -1444,7 +2018,11 @@ class RooftopRunner {
                     name: name,
                     score: Math.floor(this.score),
                     distance: Math.floor(this.distance),
-                    coins: this.coins
+                    coins: this.coins,
+                    goalType: this.currentGoal ? this.currentGoal.type : null,
+                    goalDescription: this.currentGoal ? this.currentGoal.description : null,
+                    goalTarget: this.currentGoal ? this.currentGoal.target : null,
+                    goalCompleted: this.currentGoal ? this.currentGoal.completed : false
                 })
             });
             
