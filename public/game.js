@@ -236,6 +236,10 @@ class RooftopRunner {
         document.getElementById('startScreen').classList.remove('active');
         document.getElementById('gameUI').style.display = 'block';
         document.getElementById('mobileControls').style.display = 'flex';
+        
+        // 重置保存按钮状态
+        document.getElementById('saveScoreBtn').disabled = false;
+        document.getElementById('saveScoreBtn').textContent = '保存成绩';
     }
     
     resetGame() {
@@ -1025,37 +1029,44 @@ class RooftopRunner {
     }
     
     collectPowerUp(powerUp) {
+        let message = '';
         switch(powerUp.type) {
             case 'shield':
+                const wasShieldActive = this.powerUpActive.shield && this.powerUpTimers.shield > 0;
                 this.powerUpActive.shield = true;
                 this.powerUpTimers.shield = this.powerUpDurations.shield;
+                message = wasShieldActive ? '护盾重置!' : '获得护盾!';
                 this.createFloatingText(
                     powerUp.x,
                     powerUp.y,
-                    '获得护盾!',
+                    message,
                     '#00ff00'
                 );
                 break;
                 
             case 'magnet':
+                const wasMagnetActive = this.powerUpActive.magnet && this.powerUpTimers.magnet > 0;
                 this.powerUpActive.magnet = true;
                 this.powerUpTimers.magnet = this.powerUpDurations.magnet;
+                message = wasMagnetActive ? '磁铁重置!' : '获得磁铁!';
                 this.createFloatingText(
                     powerUp.x,
                     powerUp.y,
-                    '获得磁铁!',
+                    message,
                     '#ff00ff'
                 );
                 break;
                 
             case 'speedBoots':
+                const wasSpeedActive = this.powerUpActive.speedBoots && this.powerUpTimers.speedBoots > 0;
                 this.powerUpActive.speedBoots = true;
                 this.powerUpTimers.speedBoots = this.powerUpDurations.speedBoots;
                 this.speedMultiplier = 1.5;
+                message = wasSpeedActive ? '加速重置!' : '获得加速!';
                 this.createFloatingText(
                     powerUp.x,
                     powerUp.y,
-                    '获得加速!',
+                    message,
                     '#00ffff'
                 );
                 break;
@@ -1393,7 +1404,7 @@ class RooftopRunner {
                     progressText = `${this.goalProgress}/${this.currentGoal.target}`;
                     break;
                 case 'distance':
-                    progressText = `${Math.floor(this.distance)}/${this.currentGoal.target}m`;
+                    progressText = `${this.goalProgress}/${this.currentGoal.target}m`;
                     break;
                 case 'dodge':
                     progressText = `${this.goalProgress}/${this.currentGoal.target}`;
