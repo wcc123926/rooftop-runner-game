@@ -260,6 +260,32 @@ h2 {
     color: #64c8ff;
 }
 
+/* 小目标状态 */
+.goal-status {
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(0, 255, 0, 0.05);
+    border-radius: 10px;
+    border: 1px solid rgba(0, 255, 0, 0.2);
+}
+
+.goal-status h3 {
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+    color: #64c8ff;
+}
+
+.goal-status p {
+    margin: 5px 0;
+    font-size: 1rem;
+}
+
+.goal-result {
+    font-weight: bold;
+    font-size: 1.1rem !important;
+    margin-top: 10px !important;
+}
+
 .name-input {
     margin: 20px 0;
 }
