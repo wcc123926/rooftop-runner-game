@@ -407,30 +407,42 @@ h2 {
 }
 
 .name-input {
-    margin: 20px 0;
+    margin: 25px 0;
+    padding: 20px;
+    background: rgba(100, 200, 255, 0.08);
+    border-radius: 12px;
+    border: 2px solid rgba(100, 200, 255, 0.2);
 }
 
 .name-input label {
     display: block;
-    margin-bottom: 10px;
-    color: #c0c0e0;
+    margin-bottom: 12px;
+    color: #64c8ff;
+    font-weight: bold;
+    font-size: 1.05rem;
 }
 
 .name-input input {
-    padding: 10px 15px;
-    font-size: 1rem;
-    border: 2px solid rgba(100, 200, 255, 0.3);
+    padding: 12px 18px;
+    font-size: 1.05rem;
+    border: 2px solid rgba(100, 200, 255, 0.4);
     border-radius: 10px;
     background: rgba(0, 0, 0, 0.5);
     color: white;
     width: 100%;
-    max-width: 250px;
-    margin-bottom: 10px;
+    max-width: 280px;
+    margin-bottom: 15px;
+    transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 .name-input input:focus {
     outline: none;
     border-color: #64c8ff;
+    box-shadow: 0 0 15px rgba(100, 200, 255, 0.3);
+}
+
+.name-input input::placeholder {
+    color: rgba(192, 192, 224, 0.6);
 }
 
 .leaderboard-preview {
