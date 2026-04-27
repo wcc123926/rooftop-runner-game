@@ -41,8 +41,24 @@
                     <span id="coinsValue" class="value">0</span>
                 </div>
                 <div class="score-item">
+                    <span class="label">银币</span>
+                    <span id="silverCoinsValue" class="value">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="label">能量</span>
+                    <span id="energyFragmentsValue" class="value">0</span>
+                </div>
+                <div class="score-item">
                     <span class="label">连击</span>
                     <span id="comboValue" class="value">x1</span>
+                </div>
+                <div class="score-item">
+                    <span class="label">连收</span>
+                    <span id="currentComboValue" class="value">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="label">最高连收</span>
+                    <span id="maxComboValue" class="value">0</span>
                 </div>
             </div>
             <div class="health-display">
@@ -50,6 +66,10 @@
                 <div id="healthBar" class="health-bar">
                     <div class="health-fill" style="width: 100%"></div>
                 </div>
+            </div>
+            <div id="rewardModeDisplay" class="reward-mode-display" style="display: none;">
+                <span class="label">奖励模式</span>
+                <span id="rewardModeTimer" class="value">20s</span>
             </div>
         </div>
         
@@ -69,8 +89,33 @@
                 <div class="final-score">
                     <p>最终分数: <span id="finalScore">0</span></p>
                     <p>距离: <span id="finalDistance">0</span>m</p>
-                    <p>金币: <span id="finalCoins">0</span></p>
                 </div>
+                
+                <!-- 详细统计 -->
+                <div class="detailed-stats">
+                    <h3>收益统计</h3>
+                    <div class="stats-section">
+                        <h4>普通跑酷收益</h4>
+                        <p>金币: <span id="normalCoins">0</span></p>
+                        <p>银币: <span id="normalSilverCoins">0</span></p>
+                        <p>能量碎片: <span id="normalEnergyFragments">0</span></p>
+                        <p class="stats-total">小计: <span id="normalScore">0</span>分</p>
+                    </div>
+                    <div class="stats-section">
+                        <h4>奖励模式收益</h4>
+                        <p>金币: <span id="rewardCoins">0</span></p>
+                        <p>银币: <span id="rewardSilverCoins">0</span></p>
+                        <p>能量碎片: <span id="rewardEnergyFragments">0</span></p>
+                        <p class="stats-total">小计: <span id="rewardScore">0</span>分</p>
+                    </div>
+                    <div class="stats-section">
+                        <h4>其他统计</h4>
+                        <p>进入奖励模式次数: <span id="rewardModeCount">0</span>次</p>
+                        <p>最高连收: <span id="maxCombo">0</span>连</p>
+                        <p>距离得分: <span id="distanceScore">0</span>分</p>
+                    </div>
+                </div>
+                
                 <!-- 小目标完成情况 -->
                 <div id="goalStatus" class="goal-status" style="display: none;">
                     <h3>小目标</h3>
