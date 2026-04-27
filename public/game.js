@@ -959,14 +959,19 @@ class RooftopRunner {
             if (this.player.slideHold && !this.player.isJumping) {
                 // 如果按住下滑键且不在跳跃中，重置下滑计时器
                 this.player.slideTimer = this.player.slideDuration;
-            } else {
-                this.player.slideTimer--;
-            }
-            
-            if (this.player.slideTimer <= 0) {
+            } else if (!this.player.slideHold && !this.player.isJumping) {
+                // 如果松开下滑键且不在跳跃中，立即结束滑行
                 this.player.isSliding = false;
                 this.player.height = 60;
                 this.player.y = this.player.groundY;
+                this.player.slideTimer = 0;
+            } else {
+                // 在跳跃中滑行，等待落地或松开
+                this.player.slideTimer--;
+                if (this.player.slideTimer <= 0) {
+                    this.player.isSliding = false;
+                    this.player.height = 60;
+                }
             }
         } else if (this.player.slideHold && !this.player.isJumping && this.player.jumpCount === 0) {
             // 如果按住下滑键且在地面上，开始滑行
@@ -1567,6 +1572,9 @@ class RooftopRunner {
         this.rewardModeCount++;
         this.rewardProgress = 0;
         
+        // 清理奖励模式前的普通障碍
+        this.obstacles = [];
+        
         this.createFloatingText(
             this.player.x + this.player.width / 2,
             this.player.y - 50,
@@ -1580,6 +1588,7 @@ class RooftopRunner {
     endRewardMode() {
         this.rewardModeActive = false;
         this.rewardPatterns = [];
+        this.rewardProgress = 0;
         this.createFloatingText(
             this.player.x + this.player.width / 2,
             this.player.y - 50,
@@ -1845,9 +1854,20 @@ class RooftopRunner {
     }
     
     render() {
-        // 清空画布
-        this.ctx.fillStyle = '#0a0a1a';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        // 清空画布 - 奖励模式时用白色天空，夜景用深色
+        if (this.rewardModeActive) {
+            // 奖励模式：白色天空背景，带渐变效果
+            const skyGradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+            skyGradient.addColorStop(0, '#ffffff');
+            skyGradient.addColorStop(0.5, '#f0f8ff');
+            skyGradient.addColorStop(1, '#e6f3ff');
+            this.ctx.fillStyle = skyGradient;
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        } else {
+            // 普通模式：夜景
+            this.ctx.fillStyle = '#0a0a1a';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
         
         // 计算相机偏移
         const cameraX = this.player.x - this.canvas.width * 0.3;
@@ -1863,11 +1883,14 @@ class RooftopRunner {
             this.ctx.translate(shakeX, shakeY);
         }
         
-        // 绘制星星背景
-        this.drawStars();
-        
-        // 绘制背景建筑物
-        this.drawBackgrounds(cameraX);
+        // 普通模式下绘制星星和夜景建筑
+        if (!this.rewardModeActive) {
+            // 绘制星星背景
+            this.drawStars();
+            
+            // 绘制背景建筑物
+            this.drawBackgrounds(cameraX);
+        }
         
         // 应用相机变换
         this.ctx.translate(-cameraX, 0);
@@ -1922,6 +1945,9 @@ class RooftopRunner {
         
         // 绘制道具状态UI
         this.drawPowerUpUI();
+        
+        // 绘制奖励模式顶部提示
+        this.drawRewardModeTopUI();
         
         // 绘制小目标UI
         this.drawGoalUI();
@@ -2322,9 +2348,17 @@ class RooftopRunner {
         this.ctx.save();
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         
-        // 显示位置 - 屏幕顶部中央
-        const posX = this.canvas.width / 2;
-        const posY = 150;
+        // 显示位置 - 奖励模式时显示在顶部右侧，普通模式在顶部中央
+        let posX, posY;
+        if (this.rewardModeActive) {
+            // 奖励模式时，小目标显示在右上角
+            posX = this.canvas.width - 140;
+            posY = 100;
+        } else {
+            // 普通模式时，显示在顶部中央
+            posX = this.canvas.width / 2;
+            posY = 150;
+        }
         
         // 背景
         this.ctx.fillStyle = this.currentGoal.completed ? 'rgba(0, 255, 0, 0.2)' : 'rgba(0, 0, 0, 0.6)';
@@ -2365,6 +2399,46 @@ class RooftopRunner {
             }
             this.ctx.fillText(progressText, posX, posY + 28);
         }
+        
+        this.ctx.restore();
+    }
+    
+    // 绘制奖励模式顶部提示
+    drawRewardModeTopUI() {
+        if (!this.rewardModeActive || this.gameState !== 'playing') return;
+        
+        this.ctx.save();
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        
+        // 显示位置 - 顶部左侧
+        const posX = 20;
+        const posY = 100;
+        const remainingSeconds = Math.ceil(this.rewardModeTimer / 60);
+        
+        // 闪烁效果 - 倒计时快结束时更明显
+        const isUrgent = remainingSeconds <= 5;
+        const pulseAlpha = isUrgent ? 
+            (Math.sin(Date.now() * 0.015) + 1) * 0.3 + 0.5 : 0.8;
+        
+        // 背景
+        this.ctx.fillStyle = `rgba(255, 105, 180, ${pulseAlpha * 0.3})`;
+        this.ctx.fillRect(posX, posY - 25, 180, 50);
+        
+        // 边框
+        this.ctx.strokeStyle = isUrgent ? '#ff4757' : '#ff69b4';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(posX, posY - 25, 180, 50);
+        
+        // 标题
+        this.ctx.font = 'bold 14px Arial';
+        this.ctx.textAlign = 'left';
+        this.ctx.fillStyle = isUrgent ? '#ff4757' : '#ff69b4';
+        this.ctx.fillText('★ 奖励模式 ★', posX + 10, posY);
+        
+        // 倒计时
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.fillText(`剩余: ${remainingSeconds}秒`, posX + 10, posY + 18);
         
         this.ctx.restore();
     }
