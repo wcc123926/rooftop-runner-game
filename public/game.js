@@ -671,50 +671,65 @@ class RooftopRunner {
     generatePlatforms() {
         // 生成新的平台
         while (this.lastPlatformX < this.canvas.width + this.player.x + 500) {
-            const isGap = Math.random() < 0.2;
             
-            if (isGap) {
-                // 断裂平台
-                const gapWidth = 100 + Math.random() * 100;
-                this.platforms.push({
-                    x: this.lastPlatformX,
-                    y: this.player.groundY + 60,
-                    width: gapWidth,
-                    height: 150,
-                    isGap: true
-                });
-                this.lastPlatformX += gapWidth;
-                
-                // 在间隙后生成正常平台
-                const platformWidth = 200 + Math.random() * 300;
+            if (this.rewardModeActive) {
+                // 奖励模式：只生成连续平坦的跑道，没有坑洞
+                const platformWidth = 800; // 奖励模式下用大的连续平台
                 this.platforms.push({
                     x: this.lastPlatformX,
                     y: this.player.groundY + 60,
                     width: platformWidth,
                     height: 150,
-                    isGap: false
+                    isGap: false,
+                    isRewardModePlatform: true
                 });
                 this.lastPlatformX += platformWidth;
+                // 奖励模式下不生成障碍和普通收集物
             } else {
-                // 正常平台
-                const platformWidth = 300 + Math.random() * 400;
-                this.platforms.push({
-                    x: this.lastPlatformX,
-                    y: this.player.groundY + 60,
-                    width: platformWidth,
-                    height: 150,
-                    isGap: false
-                });
-                this.lastPlatformX += platformWidth;
-            }
-            
-            // 在平台上生成障碍物（奖励模式时不生成）
-            const platform = this.platforms[this.platforms.length - 1];
-            if (!this.rewardModeActive && !platform.isGap && Math.random() < 0.7) {
-                this.generateObstacle(platform);
-            }
-            
-            if (!this.rewardModeActive) {
+                // 普通模式：生成包含坑洞的平台
+                const isGap = Math.random() < 0.2;
+                
+                if (isGap) {
+                    // 断裂平台
+                    const gapWidth = 100 + Math.random() * 100;
+                    this.platforms.push({
+                        x: this.lastPlatformX,
+                        y: this.player.groundY + 60,
+                        width: gapWidth,
+                        height: 150,
+                        isGap: true
+                    });
+                    this.lastPlatformX += gapWidth;
+                    
+                    // 在间隙后生成正常平台
+                    const platformWidth = 200 + Math.random() * 300;
+                    this.platforms.push({
+                        x: this.lastPlatformX,
+                        y: this.player.groundY + 60,
+                        width: platformWidth,
+                        height: 150,
+                        isGap: false
+                    });
+                    this.lastPlatformX += platformWidth;
+                } else {
+                    // 正常平台
+                    const platformWidth = 300 + Math.random() * 400;
+                    this.platforms.push({
+                        x: this.lastPlatformX,
+                        y: this.player.groundY + 60,
+                        width: platformWidth,
+                        height: 150,
+                        isGap: false
+                    });
+                    this.lastPlatformX += platformWidth;
+                }
+                
+                // 在平台上生成障碍物
+                const platform = this.platforms[this.platforms.length - 1];
+                if (!platform.isGap && Math.random() < 0.7) {
+                    this.generateObstacle(platform);
+                }
+                
                 // 生成金币
                 if (Math.random() < 0.5) {
                     this.generateCoins(platform);
@@ -1572,8 +1587,37 @@ class RooftopRunner {
         this.rewardModeCount++;
         this.rewardProgress = 0;
         
-        // 清理奖励模式前的普通障碍
+        // 清理所有普通内容 - 障碍、收集物、道具
         this.obstacles = [];
+        this.coinsList = [];
+        this.silverCoinsList = [];
+        this.energyFragmentsList = [];
+        this.powerUps = [];
+        
+        // 计算玩家当前位置，确保从当前位置开始生成平坦跑道
+        const playerCurrentX = this.player.x;
+        
+        // 创建从玩家位置向前延伸的平坦跑道
+        this.platforms = [];
+        
+        // 先创建一个从玩家位置向前延伸的平台，确保玩家不会掉下去
+        const initialPlatformStart = Math.max(0, playerCurrentX - 200);
+        this.platforms.push({
+            x: initialPlatformStart,
+            y: this.player.groundY + 60,
+            width: playerCurrentX + this.canvas.width * 2 - initialPlatformStart,
+            height: 150,
+            isGap: false,
+            isRewardModePlatform: true
+        });
+        
+        // 更新 lastPlatformX 到新平台的末端
+        this.lastPlatformX = playerCurrentX + this.canvas.width * 2;
+        
+        // 确保玩家在地面上
+        if (this.player.y > this.player.groundY) {
+            this.player.y = this.player.groundY;
+        }
         
         this.createFloatingText(
             this.player.x + this.player.width / 2,
@@ -1589,6 +1633,30 @@ class RooftopRunner {
         this.rewardModeActive = false;
         this.rewardPatterns = [];
         this.rewardProgress = 0;
+        
+        // 从玩家当前位置开始重新生成普通平台
+        const playerCurrentX = this.player.x;
+        
+        // 清理奖励模式平台，从当前位置开始重新生成
+        this.platforms = [];
+        
+        // 创建一个初始平台确保玩家不会掉下去
+        this.platforms.push({
+            x: Math.max(0, playerCurrentX - 200),
+            y: this.player.groundY + 60,
+            width: this.canvas.width,
+            height: 150,
+            isGap: false
+        });
+        
+        this.lastPlatformX = Math.max(0, playerCurrentX - 200) + this.canvas.width;
+        
+        // 确保玩家在地面上
+        if (this.player.y > this.player.groundY) {
+            this.player.y = this.player.groundY;
+            this.player.velocityY = 0;
+        }
+        
         this.createFloatingText(
             this.player.x + this.player.width / 2,
             this.player.y - 50,
@@ -1840,11 +1908,64 @@ class RooftopRunner {
             }
         }
         
-        const allCollected = this.rewardPatterns.length > 0 && 
-            this.rewardPatterns.every(item => item.collected);
+        // 清理已收集且超出屏幕的图案，避免数组无限增长
+        this.rewardPatterns = this.rewardPatterns.filter(item => 
+            !item.collected || item.x > this.player.x - this.canvas.width
+        );
         
-        if (allCollected) {
-            this.generateRewardPatterns();
+        // 优化：检查是否需要生成新图案
+        // 不是所有图案被吃完才生成，而是检查视野前方是否有足够的未收集图案
+        const visiblePatterns = this.rewardPatterns.filter(item => 
+            !item.collected && item.x > this.player.x
+        );
+        
+        // 找到最右边图案的位置
+        let rightmostX = this.player.x;
+        for (const item of this.rewardPatterns) {
+            if (!item.collected && item.x > rightmostX) {
+                rightmostX = item.x;
+            }
+        }
+        
+        // 如果最右边图案已经被玩家超过，或者视野前方图案太少，生成新图案
+        const needsMorePatterns = rightmostX < this.player.x + this.canvas.width * 0.5 || 
+            visiblePatterns.length < 8;
+        
+        if (needsMorePatterns && this.rewardModeActive) {
+            this.generateMoreRewardPatterns();
+        }
+    }
+    
+    generateMoreRewardPatterns() {
+        // 增量生成奖励图案，避免卡顿
+        const patterns = [
+            { type: 'line', description: '水平线' },
+            { type: 'wave', description: '波浪线' },
+            { type: 'circle', description: '圆环' },
+            { type: 'heart', description: '心形' },
+            { type: 'star', description: '星形' },
+            { type: 'arrow', description: '箭头' },
+            { type: 'stairs', description: '阶梯' },
+            { type: 'doubleCurve', description: '双层曲线' }
+        ];
+        
+        // 找到当前最右边的图案位置
+        let baseX = this.player.x + this.canvas.width * 0.8;
+        for (const item of this.rewardPatterns) {
+            if (!item.collected && item.x > baseX) {
+                baseX = item.x;
+            }
+        }
+        
+        // 只生成1-2个图案，避免一次生成太多导致卡顿
+        const numPatterns = 1 + Math.floor(Math.random() * 2);
+        
+        for (let p = 0; p < numPatterns; p++) {
+            const patternType = patterns[Math.floor(Math.random() * patterns.length)];
+            const startX = baseX + p * 400;
+            const centerY = this.player.groundY - 100 - Math.random() * 100;
+            
+            this.generatePatternItems(patternType.type, startX, centerY);
         }
     }
     
@@ -2607,26 +2728,44 @@ class RooftopRunner {
                 continue;
             }
             
-            // 绘制平台主体 - 使用更暗的中性色，与障碍物区分开
-            this.ctx.fillStyle = '#1a1a2e';
-            this.ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
-            
-            // 绘制平台顶部边缘 - 使用稍微亮一点的颜色
-            this.ctx.fillStyle = '#16213e';
-            this.ctx.fillRect(platform.x, platform.y, platform.width, 15);
-            
-            // 绘制平台纹理 - 更明显的标记
-            this.ctx.fillStyle = '#0f3460';
-            for (let i = 0; i < platform.width; i += 60) {
-                // 绘制水平线
-                this.ctx.fillRect(platform.x + i, platform.y + 20, 40, 3);
-                // 绘制垂直线
-                this.ctx.fillRect(platform.x + i + 20, platform.y + 25, 3, 10);
+            if (this.rewardModeActive) {
+                // 奖励模式：简洁的白色跑道样式
+                // 跑道主体 - 淡灰色
+                this.ctx.fillStyle = '#e8e8e8';
+                this.ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                
+                // 跑道顶部边缘 - 稍微深一点的灰色
+                this.ctx.fillStyle = '#d0d0d0';
+                this.ctx.fillRect(platform.x, platform.y, platform.width, 8);
+                
+                // 简洁的跑道线 - 只有简单的分隔线
+                this.ctx.fillStyle = '#c0c0c0';
+                for (let i = 0; i < platform.width; i += 100) {
+                    this.ctx.fillRect(platform.x + i, platform.y + 10, 60, 2);
+                }
+            } else {
+                // 普通模式：原来的夜景样式
+                // 绘制平台主体 - 使用更暗的中性色，与障碍物区分开
+                this.ctx.fillStyle = '#1a1a2e';
+                this.ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                
+                // 绘制平台顶部边缘 - 使用稍微亮一点的颜色
+                this.ctx.fillStyle = '#16213e';
+                this.ctx.fillRect(platform.x, platform.y, platform.width, 15);
+                
+                // 绘制平台纹理 - 更明显的标记
+                this.ctx.fillStyle = '#0f3460';
+                for (let i = 0; i < platform.width; i += 60) {
+                    // 绘制水平线
+                    this.ctx.fillRect(platform.x + i, platform.y + 20, 40, 3);
+                    // 绘制垂直线
+                    this.ctx.fillRect(platform.x + i + 20, platform.y + 25, 3, 10);
+                }
+                
+                // 平台边缘高光
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                this.ctx.fillRect(platform.x, platform.y, platform.width, 3);
             }
-            
-            // 平台边缘高光
-            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-            this.ctx.fillRect(platform.x, platform.y, platform.width, 3);
         }
     }
     
