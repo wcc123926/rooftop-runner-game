@@ -15,6 +15,29 @@ class RooftopRunner {
         this.maxSpeed = 15;
         this.speedIncrement = 0.001;
         
+        this.silverCoins = 0;
+        this.energyFragments = 0;
+        this.rewardProgress = 0;
+        this.rewardProgressMax = 100;
+        this.rewardModeActive = false;
+        this.rewardModeTimer = 0;
+        this.rewardModeDuration = 1200;
+        this.rewardModeCount = 0;
+        this.rewardPatterns = [];
+        
+        this.currentCombo = 0;
+        this.maxCombo = 0;
+        
+        this.normalCoins = 0;
+        this.normalSilverCoins = 0;
+        this.normalEnergyFragments = 0;
+        this.rewardCoins = 0;
+        this.rewardSilverCoins = 0;
+        this.rewardEnergyFragments = 0;
+        
+        this.lastCollectTime = 0;
+        this.comboTimeout = 60;
+        
         this.player = {
             x: 100,
             y: 0,
@@ -23,7 +46,10 @@ class RooftopRunner {
             velocityY: 0,
             velocityX: 0,
             isJumping: false,
+            jumpCount: 0,
+            maxJumps: 2,
             isSliding: false,
+            slideHold: false,
             slideTimer: 0,
             slideDuration: 30,
             groundY: 0
@@ -32,6 +58,8 @@ class RooftopRunner {
         this.platforms = [];
         this.obstacles = [];
         this.coinsList = [];
+        this.silverCoinsList = [];
+        this.energyFragmentsList = [];
         this.powerUps = [];
         this.particles = [];
         this.backgrounds = [];
@@ -82,6 +110,7 @@ class RooftopRunner {
             score: 0,
             distance: 0,
             coins: 0,
+            silverCoins: 0,
             combo: 1
         };
         
@@ -116,6 +145,7 @@ class RooftopRunner {
             if (e.code === 'ArrowDown' || e.code === 'KeyS') {
                 e.preventDefault();
                 this.keys.down = true;
+                this.player.slideHold = true;
                 if (this.gameState === 'playing') {
                     this.slide();
                 }
@@ -135,6 +165,7 @@ class RooftopRunner {
             }
             if (e.code === 'ArrowDown' || e.code === 'KeyS') {
                 this.keys.down = false;
+                this.player.slideHold = false;
             }
         });
         
@@ -170,6 +201,7 @@ class RooftopRunner {
         // 下滑按钮
         slideBtn.addEventListener('touchstart', (e) => {
             e.preventDefault();
+            this.player.slideHold = true;
             if (this.gameState === 'playing') {
                 this.slide();
             }
@@ -177,9 +209,25 @@ class RooftopRunner {
         
         slideBtn.addEventListener('mousedown', (e) => {
             e.preventDefault();
+            this.player.slideHold = true;
             if (this.gameState === 'playing') {
                 this.slide();
             }
+        });
+        
+        slideBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.player.slideHold = false;
+        });
+        
+        slideBtn.addEventListener('mouseup', (e) => {
+            e.preventDefault();
+            this.player.slideHold = false;
+        });
+        
+        slideBtn.addEventListener('mouseleave', (e) => {
+            e.preventDefault();
+            this.player.slideHold = false;
         });
     }
     
@@ -242,20 +290,43 @@ class RooftopRunner {
         this.score = 0;
         this.distance = 0;
         this.coins = 0;
+        this.silverCoins = 0;
+        this.energyFragments = 0;
+        this.rewardProgress = 0;
+        this.rewardModeActive = false;
+        this.rewardModeTimer = 0;
+        this.rewardModeCount = 0;
+        this.rewardPatterns = [];
         this.combo = 1;
         this.health = 100;
         this.speed = this.baseSpeed;
         
+        this.currentCombo = 0;
+        this.maxCombo = 0;
+        
+        this.normalCoins = 0;
+        this.normalSilverCoins = 0;
+        this.normalEnergyFragments = 0;
+        this.rewardCoins = 0;
+        this.rewardSilverCoins = 0;
+        this.rewardEnergyFragments = 0;
+        
+        this.lastCollectTime = 0;
+        
         this.player.y = this.player.groundY;
         this.player.velocityY = 0;
         this.player.isJumping = false;
+        this.player.jumpCount = 0;
         this.player.isSliding = false;
+        this.player.slideHold = false;
         this.player.slideTimer = 0;
         this.player.height = 60;
         
         this.platforms = [];
         this.obstacles = [];
         this.coinsList = [];
+        this.silverCoinsList = [];
+        this.energyFragmentsList = [];
         this.powerUps = [];
         this.particles = [];
         this.lastPlatformX = 0;
@@ -352,10 +423,28 @@ class RooftopRunner {
         document.getElementById('mobileControls').style.display = 'none';
         document.getElementById('gameOverScreen').classList.add('active');
         
+        const normalScore = this.normalCoins * 100 + this.normalSilverCoins * 50 + this.normalEnergyFragments * 25;
+        const rewardScore = this.rewardCoins * 100 + this.rewardSilverCoins * 50 + this.rewardEnergyFragments * 25;
+        const distanceScore = Math.floor(this.distance * 10);
+        
         // 更新最终分数
         document.getElementById('finalScore').textContent = Math.floor(this.score);
         document.getElementById('finalDistance').textContent = Math.floor(this.distance);
-        document.getElementById('finalCoins').textContent = this.coins;
+        
+        // 更新详细统计
+        document.getElementById('normalCoins').textContent = this.normalCoins;
+        document.getElementById('normalSilverCoins').textContent = this.normalSilverCoins;
+        document.getElementById('normalEnergyFragments').textContent = this.normalEnergyFragments;
+        document.getElementById('normalScore').textContent = normalScore;
+        
+        document.getElementById('rewardCoins').textContent = this.rewardCoins;
+        document.getElementById('rewardSilverCoins').textContent = this.rewardSilverCoins;
+        document.getElementById('rewardEnergyFragments').textContent = this.rewardEnergyFragments;
+        document.getElementById('rewardScore').textContent = rewardScore;
+        
+        document.getElementById('rewardModeCount').textContent = this.rewardModeCount;
+        document.getElementById('maxCombo').textContent = this.maxCombo;
+        document.getElementById('distanceScore').textContent = distanceScore;
         
         // 更新小目标完成情况
         if (this.currentGoal) {
@@ -380,10 +469,15 @@ class RooftopRunner {
     }
     
     jump() {
-        if (!this.player.isJumping && !this.player.isSliding) {
+        if (!this.player.isSliding && this.player.jumpCount < this.player.maxJumps) {
             this.player.velocityY = this.jumpForce;
             this.player.isJumping = true;
+            this.player.jumpCount++;
             this.createJumpParticles();
+            
+            if (this.player.jumpCount === 2) {
+                this.createDoubleJumpParticles();
+            }
         }
     }
     
@@ -394,6 +488,22 @@ class RooftopRunner {
             this.player.height = 30;
             this.player.y = this.player.groundY + 30;
             this.createSlideParticles();
+        }
+    }
+    
+    createDoubleJumpParticles() {
+        for (let i = 0; i < 25; i++) {
+            this.particles.push({
+                x: this.player.x + this.player.width / 2,
+                y: this.player.y + this.player.height / 2,
+                velocityX: (Math.random() - 0.5) * 10,
+                velocityY: Math.random() * 6 + 1,
+                size: 5 + Math.random() * 6,
+                color: '#a0d8ff',
+                glowColor: '#a0d8ff',
+                life: 45,
+                maxLife: 45
+            });
         }
     }
     
@@ -474,6 +584,40 @@ class RooftopRunner {
         
         // 添加浮动文本显示获得的分数
         this.createFloatingText(x, y, '+' + (100 * this.combo), '#ffd700');
+    }
+    
+    createSilverCoinParticles(x, y) {
+        for (let i = 0; i < 12; i++) {
+            this.particles.push({
+                x: x,
+                y: y,
+                velocityX: (Math.random() - 0.5) * 7,
+                velocityY: (Math.random() - 0.5) * 7,
+                size: 4 + Math.random() * 5,
+                color: '#c0c0c0',
+                glowColor: '#c0c0c0',
+                life: 30,
+                maxLife: 30
+            });
+        }
+        
+        for (let i = 0; i < 6; i++) {
+            this.particles.push({
+                x: x,
+                y: y,
+                velocityX: (Math.random() - 0.5) * 8,
+                velocityY: (Math.random() - 0.5) * 8 - 2,
+                size: 2 + Math.random() * 3,
+                color: '#e8e8e8',
+                glowColor: '#e8e8e8',
+                life: 35,
+                maxLife: 35,
+                isStar: true
+            });
+        }
+        
+        this.silverCoinFlash = 10;
+        this.createFloatingText(x, y, '+' + (50 * this.combo), '#c0c0c0');
     }
     
     createFloatingText(x, y, text, color) {
@@ -564,31 +708,51 @@ class RooftopRunner {
                 this.lastPlatformX += platformWidth;
             }
             
-            // 在平台上生成障碍物
+            // 在平台上生成障碍物（奖励模式时不生成）
             const platform = this.platforms[this.platforms.length - 1];
-            if (!platform.isGap && Math.random() < 0.7) {
+            if (!this.rewardModeActive && !platform.isGap && Math.random() < 0.7) {
                 this.generateObstacle(platform);
             }
             
-            // 生成金币
-            if (Math.random() < 0.5) {
-                this.generateCoins(platform);
-            }
-            
-            // 生成道具
-            if (Math.random() < 0.2) {
-                this.generatePowerUp(platform);
+            if (!this.rewardModeActive) {
+                // 生成金币
+                if (Math.random() < 0.5) {
+                    this.generateCoins(platform);
+                }
+                
+                // 生成银币
+                if (Math.random() < 0.6) {
+                    this.generateSilverCoins(platform);
+                }
+                
+                // 生成能量碎片
+                if (Math.random() < 0.4) {
+                    this.generateEnergyFragments(platform);
+                }
+                
+                // 生成道具
+                if (Math.random() < 0.2) {
+                    this.generatePowerUp(platform);
+                }
             }
         }
         
         // 移除超出屏幕的平台
         this.platforms = this.platforms.filter(p => p.x + p.width > this.player.x - this.canvas.width);
         
-        // 移除超出屏幕的障碍物
-        this.obstacles = this.obstacles.filter(o => o.x + o.width > this.player.x - this.canvas.width);
+        // 移除超出屏幕的障碍物（奖励模式时不移除，因为不生成新的）
+        if (!this.rewardModeActive) {
+            this.obstacles = this.obstacles.filter(o => o.x + o.width > this.player.x - this.canvas.width);
+        }
         
         // 移除超出屏幕的金币
         this.coinsList = this.coinsList.filter(c => c.x > this.player.x - this.canvas.width);
+        
+        // 移除超出屏幕的银币
+        this.silverCoinsList = this.silverCoinsList.filter(c => c.x > this.player.x - this.canvas.width);
+        
+        // 移除超出屏幕的能量碎片
+        this.energyFragmentsList = this.energyFragmentsList.filter(c => c.x > this.player.x - this.canvas.width);
         
         // 移除超出屏幕的道具
         this.powerUps = this.powerUps.filter(p => p.x > this.player.x - this.canvas.width);
@@ -665,6 +829,88 @@ class RooftopRunner {
         }
     }
     
+    generateSilverCoins(platform) {
+        const coinCount = 4 + Math.floor(Math.random() * 6);
+        const startX = platform.x + 80 + Math.random() * (platform.width - 160);
+        const y = this.player.groundY - 40 - Math.random() * 70;
+        
+        for (let i = 0; i < coinCount; i++) {
+            this.silverCoinsList.push({
+                x: startX + i * 35,
+                y: y,
+                radius: 10,
+                collected: false,
+                rotation: 0
+            });
+        }
+    }
+    
+    generateEnergyFragments(platform) {
+        const fragmentCount = 2 + Math.floor(Math.random() * 4);
+        const startX = platform.x + 120 + Math.random() * (platform.width - 240);
+        const y = this.player.groundY - 60 - Math.random() * 100;
+        
+        for (let i = 0; i < fragmentCount; i++) {
+            this.energyFragmentsList.push({
+                x: startX + i * 45,
+                y: y + Math.sin(i) * 20,
+                radius: 15,
+                collected: false,
+                rotation: 0,
+                pulsePhase: Math.random() * Math.PI * 2
+            });
+        }
+    }
+    
+    createEnergyFragmentParticles(x, y) {
+        for (let i = 0; i < 20; i++) {
+            this.particles.push({
+                x: x,
+                y: y,
+                velocityX: (Math.random() - 0.5) * 9,
+                velocityY: (Math.random() - 0.5) * 9,
+                size: 5 + Math.random() * 6,
+                color: '#9b59b6',
+                glowColor: '#9b59b6',
+                life: 40,
+                maxLife: 40
+            });
+        }
+        
+        for (let i = 0; i < 10; i++) {
+            this.particles.push({
+                x: x,
+                y: y,
+                velocityX: (Math.random() - 0.5) * 11,
+                velocityY: (Math.random() - 0.5) * 11 - 4,
+                size: 3 + Math.random() * 4,
+                color: '#e8daef',
+                glowColor: '#e8daef',
+                life: 45,
+                maxLife: 45,
+                isStar: true
+            });
+        }
+        
+        this.energyFragmentFlash = 12;
+        this.createFloatingText(x, y, '+' + (25 * this.combo), '#9b59b6');
+    }
+    
+    updateCombo() {
+        const currentTime = Date.now();
+        
+        if (currentTime - this.lastCollectTime < this.comboTimeout * 16.67) {
+            this.currentCombo++;
+            if (this.currentCombo > this.maxCombo) {
+                this.maxCombo = this.currentCombo;
+            }
+        } else {
+            this.currentCombo = 1;
+        }
+        
+        this.lastCollectTime = currentTime;
+    }
+    
     update() {
         if (this.gameState !== 'playing') return;
         
@@ -679,16 +925,26 @@ class RooftopRunner {
             this.speed += this.speedIncrement;
         }
         
+        // 更新奖励模式计时器
+        if (this.rewardModeActive) {
+            this.rewardModeTimer--;
+            if (this.rewardModeTimer <= 0) {
+                this.endRewardMode();
+            }
+        }
+        
         // 更新距离和分数
         this.distance += effectiveSpeed * 0.1;
-        this.score = this.distance * 10 + this.coins * 100 * this.combo;
+        this.score = this.distance * 10 + this.coins * 100 * this.combo + this.silverCoins * 50 * this.combo + this.energyFragments * 25 * this.combo;
         
         // 更新小目标进度
         this.updateGoalProgress();
         
-        // 磁铁效果 - 吸引金币
+        // 磁铁效果 - 吸引金币、银币和能量碎片
         if (this.powerUpActive.magnet) {
             this.attractCoins();
+            this.attractSilverCoins();
+            this.attractEnergyFragments();
         }
         
         // 玩家移动
@@ -700,12 +956,21 @@ class RooftopRunner {
         
         // 更新下滑状态
         if (this.player.isSliding) {
-            this.player.slideTimer--;
+            if (this.player.slideHold && !this.player.isJumping) {
+                // 如果按住下滑键且不在跳跃中，重置下滑计时器
+                this.player.slideTimer = this.player.slideDuration;
+            } else {
+                this.player.slideTimer--;
+            }
+            
             if (this.player.slideTimer <= 0) {
                 this.player.isSliding = false;
                 this.player.height = 60;
                 this.player.y = this.player.groundY;
             }
+        } else if (this.player.slideHold && !this.player.isJumping && this.player.jumpCount === 0) {
+            // 如果按住下滑键且在地面上，开始滑行
+            this.slide();
         }
         
         // 更新视觉提示变量
@@ -762,6 +1027,7 @@ class RooftopRunner {
                         this.player.y = platform.y - this.player.height;
                         this.player.velocityY = 0;
                         this.player.isJumping = false;
+                        this.player.jumpCount = 0;
                         onPlatform = true;
                     }
                 }
@@ -876,6 +1142,14 @@ class RooftopRunner {
                     coin.collected = true;
                     this.coins++;
                     this.combo++;
+                    this.updateCombo();
+                    
+                    if (this.rewardModeActive) {
+                        this.rewardCoins++;
+                    } else {
+                        this.normalCoins++;
+                    }
+                    
                     this.createCoinParticles(coin.x, coin.y);
                     
                     // 更新小目标进度（金币收集）
@@ -892,10 +1166,120 @@ class RooftopRunner {
                         }
                     }
                     
+                    // 更新奖励进度
+                    if (!this.rewardModeActive) {
+                        this.updateRewardProgress(10);
+                    }
+                    
                     // 更新分数显示
                     this.updateScoreDisplay();
                 }
             }
+        }
+        
+        // 银币收集
+        for (const coin of this.silverCoinsList) {
+            if (!coin.collected) {
+                coin.rotation += 0.12;
+                
+                const playerCenterX = this.player.x + this.player.width / 2;
+                const playerCenterY = this.player.y + this.player.height / 2;
+                const dx = playerCenterX - coin.x;
+                const dy = playerCenterY - coin.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < coin.radius + 18) {
+                    coin.collected = true;
+                    this.silverCoins++;
+                    this.combo++;
+                    this.updateCombo();
+                    
+                    if (this.rewardModeActive) {
+                        this.rewardSilverCoins++;
+                    } else {
+                        this.normalSilverCoins++;
+                    }
+                    
+                    this.createSilverCoinParticles(coin.x, coin.y);
+                    
+                    // 更新小目标进度（金币收集也包含银币）
+                    if (this.currentGoal && this.currentGoal.type === 'coins' && !this.currentGoal.completed) {
+                        this.goalProgress++;
+                        if (this.goalProgress >= this.currentGoal.target) {
+                            this.currentGoal.completed = true;
+                            this.createFloatingText(
+                                this.player.x + this.player.width / 2,
+                                this.player.y - 50,
+                                '目标完成!',
+                                '#00ff00'
+                            );
+                        }
+                    }
+                    
+                    // 更新奖励进度
+                    if (!this.rewardModeActive) {
+                        this.updateRewardProgress(5);
+                    }
+                    
+                    // 更新分数显示
+                    this.updateScoreDisplay();
+                }
+            }
+        }
+        
+        // 能量碎片收集
+        for (const fragment of this.energyFragmentsList) {
+            if (!fragment.collected) {
+                fragment.rotation += 0.08;
+                
+                const playerCenterX = this.player.x + this.player.width / 2;
+                const playerCenterY = this.player.y + this.player.height / 2;
+                const dx = playerCenterX - fragment.x;
+                const dy = playerCenterY - fragment.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < fragment.radius + 22) {
+                    fragment.collected = true;
+                    this.energyFragments++;
+                    this.combo++;
+                    this.updateCombo();
+                    
+                    if (this.rewardModeActive) {
+                        this.rewardEnergyFragments++;
+                    } else {
+                        this.normalEnergyFragments++;
+                    }
+                    
+                    this.createEnergyFragmentParticles(fragment.x, fragment.y);
+                    
+                    // 更新小目标进度（金币收集也包含能量碎片）
+                    if (this.currentGoal && this.currentGoal.type === 'coins' && !this.currentGoal.completed) {
+                        this.goalProgress++;
+                        if (this.goalProgress >= this.currentGoal.target) {
+                            this.currentGoal.completed = true;
+                            this.createFloatingText(
+                                this.player.x + this.player.width / 2,
+                                this.player.y - 50,
+                                '目标完成!',
+                                '#00ff00'
+                            );
+                        }
+                    }
+                    
+                    // 更新奖励进度
+                    if (!this.rewardModeActive) {
+                        this.updateRewardProgress(8);
+                    }
+                    
+                    // 更新分数显示
+                    this.updateScoreDisplay();
+                }
+            }
+        }
+        
+        // 奖励模式图案收集
+        if (this.rewardModeActive) {
+            this.collectRewardPatterns();
         }
         
         // 道具收集
@@ -1024,6 +1408,26 @@ class RooftopRunner {
         }
     }
     
+    attractEnergyFragments() {
+        const playerCenterX = this.player.x + this.player.width / 2;
+        const playerCenterY = this.player.y + this.player.height / 2;
+        const attractRadius = 300;
+        
+        for (const fragment of this.energyFragmentsList) {
+            if (!fragment.collected) {
+                const dx = playerCenterX - fragment.x;
+                const dy = playerCenterY - fragment.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < attractRadius && distance > 0) {
+                    const speed = 7 * (1 - distance / attractRadius);
+                    fragment.x += (dx / distance) * speed;
+                    fragment.y += (dy / distance) * speed;
+                }
+            }
+        }
+    }
+    
     collectPowerUp(powerUp) {
         switch(powerUp.type) {
             case 'shield':
@@ -1114,7 +1518,325 @@ class RooftopRunner {
         document.getElementById('scoreValue').textContent = Math.floor(this.score);
         document.getElementById('distanceValue').textContent = Math.floor(this.distance) + 'm';
         document.getElementById('coinsValue').textContent = this.coins;
+        document.getElementById('silverCoinsValue').textContent = this.silverCoins;
+        document.getElementById('energyFragmentsValue').textContent = this.energyFragments;
         document.getElementById('comboValue').textContent = 'x' + this.combo;
+        document.getElementById('currentComboValue').textContent = this.currentCombo;
+        document.getElementById('maxComboValue').textContent = this.maxCombo;
+        
+        if (this.rewardModeActive) {
+            document.getElementById('rewardModeDisplay').style.display = 'flex';
+            document.getElementById('rewardModeTimer').textContent = Math.ceil(this.rewardModeTimer / 60) + 's';
+        } else {
+            document.getElementById('rewardModeDisplay').style.display = 'none';
+        }
+    }
+    
+    attractSilverCoins() {
+        const playerCenterX = this.player.x + this.player.width / 2;
+        const playerCenterY = this.player.y + this.player.height / 2;
+        const attractRadius = 300;
+        
+        for (const coin of this.silverCoinsList) {
+            if (!coin.collected) {
+                const dx = playerCenterX - coin.x;
+                const dy = playerCenterY - coin.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < attractRadius && distance > 0) {
+                    const speed = 7 * (1 - distance / attractRadius);
+                    coin.x += (dx / distance) * speed;
+                    coin.y += (dy / distance) * speed;
+                }
+            }
+        }
+    }
+    
+    updateRewardProgress(amount) {
+        this.rewardProgress += amount;
+        
+        if (this.rewardProgress >= this.rewardProgressMax) {
+            this.rewardProgress = this.rewardProgressMax;
+            this.startRewardMode();
+        }
+    }
+    
+    startRewardMode() {
+        this.rewardModeActive = true;
+        this.rewardModeTimer = this.rewardModeDuration;
+        this.rewardModeCount++;
+        this.rewardProgress = 0;
+        
+        this.createFloatingText(
+            this.player.x + this.player.width / 2,
+            this.player.y - 50,
+            '奖励模式!',
+            '#ff69b4'
+        );
+        
+        this.generateRewardPatterns();
+    }
+    
+    endRewardMode() {
+        this.rewardModeActive = false;
+        this.rewardPatterns = [];
+        this.createFloatingText(
+            this.player.x + this.player.width / 2,
+            this.player.y - 50,
+            '奖励结束',
+            '#808080'
+        );
+    }
+    
+    generateRewardPatterns() {
+        this.rewardPatterns = [];
+        
+        const patterns = [
+            { type: 'line', description: '水平线' },
+            { type: 'wave', description: '波浪线' },
+            { type: 'circle', description: '圆环' },
+            { type: 'heart', description: '心形' },
+            { type: 'star', description: '星形' },
+            { type: 'arrow', description: '箭头' },
+            { type: 'stairs', description: '阶梯' },
+            { type: 'doubleCurve', description: '双层曲线' }
+        ];
+        
+        const baseX = this.player.x + this.canvas.width * 0.8;
+        const numPatterns = 3;
+        
+        for (let p = 0; p < numPatterns; p++) {
+            const patternType = patterns[Math.floor(Math.random() * patterns.length)];
+            const startX = baseX + p * 450;
+            const centerY = this.player.groundY - 120 - Math.random() * 80;
+            
+            this.generatePatternItems(patternType.type, startX, centerY);
+        }
+    }
+    
+    generatePatternItems(patternType, startX, centerY) {
+        const items = [];
+        const spacing = 25;
+        
+        switch(patternType) {
+            case 'line':
+                for (let i = 0; i < 12; i++) {
+                    items.push({
+                        x: startX + i * spacing,
+                        y: centerY,
+                        type: i % 3 === 0 ? 'gold' : (i % 3 === 1 ? 'silver' : 'energy'),
+                        collected: false,
+                        rotation: 0
+                    });
+                }
+                break;
+                
+            case 'wave':
+                for (let i = 0; i < 14; i++) {
+                    const y = centerY + Math.sin(i * Math.PI / 3) * 50;
+                    items.push({
+                        x: startX + i * spacing,
+                        y: y,
+                        type: i % 2 === 0 ? 'gold' : 'silver',
+                        collected: false,
+                        rotation: 0
+                    });
+                }
+                break;
+                
+            case 'circle':
+                const radius = 70;
+                const points = 20;
+                for (let i = 0; i < points; i++) {
+                    const angle = (i / points) * Math.PI * 2;
+                    items.push({
+                        x: startX + Math.cos(angle) * radius,
+                        y: centerY + Math.sin(angle) * radius,
+                        type: i % 4 === 0 ? 'gold' : (i % 4 === 2 ? 'energy' : 'silver'),
+                        collected: false,
+                        rotation: 0
+                    });
+                }
+                break;
+                
+            case 'heart':
+                const heartPoints = 18;
+                for (let i = 0; i < heartPoints; i++) {
+                    const t = (i / heartPoints) * Math.PI * 2;
+                    const x = 16 * Math.pow(Math.sin(t), 3);
+                    const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+                    items.push({
+                        x: startX + x * 3.5,
+                        y: centerY + y * 3.5,
+                        type: i % 3 === 0 ? 'gold' : (i % 3 === 1 ? 'energy' : 'silver'),
+                        collected: false,
+                        rotation: 0
+                    });
+                }
+                break;
+                
+            case 'star':
+                const starPoints = 10;
+                const outerRadius = 80;
+                const innerRadius = 40;
+                for (let i = 0; i < starPoints; i++) {
+                    const angle = (i / starPoints) * Math.PI * 2 - Math.PI / 2;
+                    const r = i % 2 === 0 ? outerRadius : innerRadius;
+                    items.push({
+                        x: startX + Math.cos(angle) * r,
+                        y: centerY + Math.sin(angle) * r,
+                        type: i % 2 === 0 ? 'gold' : 'silver',
+                        collected: false,
+                        rotation: 0
+                    });
+                }
+                break;
+                
+            case 'arrow':
+                const arrowLength = 10;
+                for (let i = 0; i < arrowLength; i++) {
+                    items.push({
+                        x: startX + i * spacing,
+                        y: centerY,
+                        type: i < arrowLength - 2 ? 'silver' : 'gold',
+                        collected: false,
+                        rotation: 0
+                    });
+                }
+                items.push({
+                    x: startX + (arrowLength - 1) * spacing,
+                    y: centerY - 30,
+                    type: 'gold',
+                    collected: false,
+                    rotation: 0
+                });
+                items.push({
+                    x: startX + (arrowLength - 1) * spacing,
+                    y: centerY + 30,
+                    type: 'gold',
+                    collected: false,
+                    rotation: 0
+                });
+                items.push({
+                    x: startX + (arrowLength - 2) * spacing,
+                    y: centerY - 20,
+                    type: 'energy',
+                    collected: false,
+                    rotation: 0
+                });
+                items.push({
+                    x: startX + (arrowLength - 2) * spacing,
+                    y: centerY + 20,
+                    type: 'energy',
+                    collected: false,
+                    rotation: 0
+                });
+                break;
+                
+            case 'stairs':
+                const stairCount = 8;
+                for (let i = 0; i < stairCount; i++) {
+                    for (let j = 0; j <= i; j++) {
+                        items.push({
+                            x: startX + j * spacing,
+                            y: centerY - i * 25,
+                            type: i % 2 === 0 ? 'gold' : 'silver',
+                            collected: false,
+                            rotation: 0
+                        });
+                    }
+                }
+                for (let i = 0; i < 4; i++) {
+                    items.push({
+                        x: startX + (stairCount - 1) * spacing,
+                        y: centerY - i * 25 - 25,
+                        type: 'energy',
+                        collected: false,
+                        rotation: 0
+                    });
+                }
+                break;
+                
+            case 'doubleCurve':
+                const curvePoints = 16;
+                for (let i = 0; i < curvePoints; i++) {
+                    const t = i / curvePoints;
+                    const y1 = centerY + Math.sin(t * Math.PI * 2) * 40;
+                    const y2 = centerY - 60 + Math.sin(t * Math.PI * 2 + Math.PI) * 30;
+                    
+                    items.push({
+                        x: startX + i * spacing,
+                        y: y1,
+                        type: i % 2 === 0 ? 'gold' : 'silver',
+                        collected: false,
+                        rotation: 0
+                    });
+                    
+                    items.push({
+                        x: startX + i * spacing,
+                        y: y2,
+                        type: i % 3 === 0 ? 'energy' : 'silver',
+                        collected: false,
+                        rotation: 0
+                    });
+                }
+                break;
+        }
+        
+        for (const item of items) {
+            this.rewardPatterns.push({
+                x: item.x,
+                y: item.y,
+                type: item.type,
+                collected: item.collected,
+                rotation: item.rotation,
+                radius: item.type === 'gold' ? 12 : 10
+            });
+        }
+    }
+    
+    collectRewardPatterns() {
+        const playerCenterX = this.player.x + this.player.width / 2;
+        const playerCenterY = this.player.y + this.player.height / 2;
+        
+        for (const item of this.rewardPatterns) {
+            if (!item.collected) {
+                item.rotation += 0.15;
+                
+                const dx = playerCenterX - item.x;
+                const dy = playerCenterY - item.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < item.radius + 25) {
+                    item.collected = true;
+                    this.combo++;
+                    this.updateCombo();
+                    
+                    if (item.type === 'gold') {
+                        this.coins++;
+                        this.rewardCoins++;
+                        this.createCoinParticles(item.x, item.y);
+                    } else if (item.type === 'silver') {
+                        this.silverCoins++;
+                        this.rewardSilverCoins++;
+                        this.createSilverCoinParticles(item.x, item.y);
+                    } else if (item.type === 'energy') {
+                        this.energyFragments++;
+                        this.rewardEnergyFragments++;
+                        this.createEnergyFragmentParticles(item.x, item.y);
+                    }
+                    
+                    this.updateScoreDisplay();
+                }
+            }
+        }
+        
+        const allCollected = this.rewardPatterns.length > 0 && 
+            this.rewardPatterns.every(item => item.collected);
+        
+        if (allCollected) {
+            this.generateRewardPatterns();
+        }
     }
     
     updateHealthBar() {
@@ -1159,6 +1881,17 @@ class RooftopRunner {
         // 绘制金币
         this.drawCoins();
         
+        // 绘制银币
+        this.drawSilverCoins();
+        
+        // 绘制能量碎片
+        this.drawEnergyFragments();
+        
+        // 绘制奖励模式图案
+        if (this.rewardModeActive) {
+            this.drawRewardPatterns();
+        }
+        
         // 绘制道具
         this.drawPowerUps();
         
@@ -1192,6 +1925,237 @@ class RooftopRunner {
         
         // 绘制小目标UI
         this.drawGoalUI();
+        
+        // 绘制奖励进度UI
+        this.drawRewardProgressUI();
+    }
+    
+    drawSilverCoins() {
+        for (const coin of this.silverCoinsList) {
+            if (!coin.collected) {
+                this.ctx.save();
+                this.ctx.translate(coin.x, coin.y);
+                
+                this.ctx.shadowColor = '#c0c0c0';
+                this.ctx.shadowBlur = 15;
+                
+                const scaleX = Math.cos(coin.rotation);
+                this.ctx.scale(scaleX, 1);
+                
+                this.ctx.fillStyle = '#e8e8e8';
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, coin.radius, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                const gradient = this.ctx.createRadialGradient(
+                    -coin.radius * 0.3, -coin.radius * 0.3, 0,
+                    0, 0, coin.radius
+                );
+                gradient.addColorStop(0, '#ffffff');
+                gradient.addColorStop(0.3, '#e8e8e8');
+                gradient.addColorStop(1, '#c0c0c0');
+                
+                this.ctx.fillStyle = gradient;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, coin.radius - 2, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.ctx.strokeStyle = '#a0a0a0';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+                
+                if (Math.abs(scaleX) > 0.3) {
+                    this.ctx.fillStyle = '#808080';
+                    this.ctx.font = 'bold 14px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText('◆', 0, 0);
+                }
+                
+                this.ctx.restore();
+            }
+        }
+    }
+    
+    drawEnergyFragments() {
+        for (const fragment of this.energyFragmentsList) {
+            if (!fragment.collected) {
+                this.ctx.save();
+                this.ctx.translate(fragment.x, fragment.y);
+                
+                const pulse = Math.sin(Date.now() * 0.005 + fragment.pulsePhase) * 0.2 + 1;
+                
+                this.ctx.shadowColor = '#9b59b6';
+                this.ctx.shadowBlur = 20 * pulse;
+                
+                const scaleX = Math.cos(fragment.rotation);
+                this.ctx.scale(scaleX, 1);
+                
+                this.ctx.fillStyle = '#e8daef';
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, fragment.radius * pulse, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                const gradient = this.ctx.createRadialGradient(
+                    -fragment.radius * 0.3, -fragment.radius * 0.3, 0,
+                    0, 0, fragment.radius * pulse
+                );
+                gradient.addColorStop(0, '#ffffff');
+                gradient.addColorStop(0.3, '#e8daef');
+                gradient.addColorStop(1, '#9b59b6');
+                
+                this.ctx.fillStyle = gradient;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, fragment.radius * pulse - 2, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.ctx.strokeStyle = '#8e44ad';
+                this.ctx.lineWidth = 3;
+                this.ctx.stroke();
+                
+                if (Math.abs(scaleX) > 0.3) {
+                    this.ctx.fillStyle = '#7d3c98';
+                    this.ctx.font = 'bold 18px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText('◆', 0, 0);
+                }
+                
+                this.ctx.restore();
+            }
+        }
+    }
+    
+    drawRewardPatterns() {
+        for (const item of this.rewardPatterns) {
+            if (!item.collected) {
+                this.ctx.save();
+                this.ctx.translate(item.x, item.y);
+                
+                let mainColor, borderColor, glowColor, symbol;
+                const isGold = item.type === 'gold';
+                const isSilver = item.type === 'silver';
+                const isEnergy = item.type === 'energy';
+                
+                if (isGold) {
+                    mainColor = '#ffec8b';
+                    borderColor = '#ffb700';
+                    glowColor = '#ffd700';
+                    symbol = '★';
+                } else if (isSilver) {
+                    mainColor = '#e8e8e8';
+                    borderColor = '#a0a0a0';
+                    glowColor = '#c0c0c0';
+                    symbol = '◆';
+                } else {
+                    mainColor = '#e8daef';
+                    borderColor = '#8e44ad';
+                    glowColor = '#9b59b6';
+                    symbol = '◆';
+                }
+                
+                const pulse = Math.sin(Date.now() * 0.008 + item.x * 0.01) * 0.15 + 1;
+                
+                this.ctx.shadowColor = glowColor;
+                this.ctx.shadowBlur = 30 * pulse;
+                
+                const scaleX = Math.cos(item.rotation);
+                this.ctx.scale(scaleX, 1);
+                
+                this.ctx.fillStyle = mainColor;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, item.radius * pulse, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                const gradient = this.ctx.createRadialGradient(
+                    -item.radius * 0.3, -item.radius * 0.3, 0,
+                    0, 0, item.radius * pulse
+                );
+                gradient.addColorStop(0, '#ffffff');
+                gradient.addColorStop(0.3, mainColor);
+                gradient.addColorStop(1, isGold ? '#ffd700' : (isSilver ? '#c0c0c0' : '#9b59b6'));
+                
+                this.ctx.fillStyle = gradient;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, item.radius * pulse - 2, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.ctx.strokeStyle = borderColor;
+                this.ctx.lineWidth = 3;
+                this.ctx.stroke();
+                
+                if (Math.abs(scaleX) > 0.3) {
+                    this.ctx.fillStyle = isGold ? '#ff8c00' : (isSilver ? '#808080' : '#7d3c98');
+                    this.ctx.font = isGold ? 'bold 16px Arial' : (isEnergy ? 'bold 18px Arial' : 'bold 14px Arial');
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText(symbol, 0, 0);
+                }
+                
+                this.ctx.restore();
+            }
+        }
+    }
+    
+    drawRewardProgressUI() {
+        if (this.gameState !== 'playing') return;
+        
+        this.ctx.save();
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        
+        const barWidth = 200;
+        const barHeight = 20;
+        const posX = this.canvas.width / 2 - barWidth / 2;
+        const posY = this.canvas.height - 50;
+        
+        // 背景
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        this.ctx.fillRect(posX - 1, posY - 1, barWidth + 2, barHeight + 2);
+        
+        // 边框
+        this.ctx.strokeStyle = this.rewardModeActive ? '#ff69b4' : '#64c8ff';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(posX - 1, posY - 1, barWidth + 2, barHeight + 2);
+        
+        // 进度条
+        if (!this.rewardModeActive) {
+            const progressPercent = this.rewardProgress / this.rewardProgressMax;
+            const gradient = this.ctx.createLinearGradient(posX, posY, posX + barWidth, posY);
+            gradient.addColorStop(0, '#64c8ff');
+            gradient.addColorStop(1, '#ff69b4');
+            
+            this.ctx.fillStyle = gradient;
+            this.ctx.fillRect(posX, posY, barWidth * progressPercent, barHeight);
+            
+            // 文字
+            this.ctx.font = 'bold 12px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.fillText('奖励进度', posX + barWidth / 2, posY - 5);
+        } else {
+            // 奖励模式倒计时
+            const remainingSeconds = Math.ceil(this.rewardModeTimer / 60);
+            const progressPercent = this.rewardModeTimer / this.rewardModeDuration;
+            
+            // 闪烁效果
+            const pulseAlpha = remainingSeconds <= 5 ? 
+                (Math.sin(Date.now() * 0.01) + 1) * 0.3 + 0.4 : 0.7;
+            
+            const gradient = this.ctx.createLinearGradient(posX, posY, posX + barWidth, posY);
+            gradient.addColorStop(0, `rgba(255, 105, 180, ${pulseAlpha})`);
+            gradient.addColorStop(1, `rgba(255, 182, 193, ${pulseAlpha})`);
+            
+            this.ctx.fillStyle = gradient;
+            this.ctx.fillRect(posX, posY, barWidth * progressPercent, barHeight);
+            
+            // 文字
+            this.ctx.font = 'bold 14px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillStyle = remainingSeconds <= 5 ? '#ff4757' : '#ff69b4';
+            this.ctx.fillText(`奖励模式: ${remainingSeconds}s`, posX + barWidth / 2, posY - 5);
+        }
+        
+        this.ctx.restore();
     }
     
     drawPowerUps() {
@@ -2008,6 +2972,10 @@ class RooftopRunner {
             return;
         }
         
+        const normalScore = this.normalCoins * 100 + this.normalSilverCoins * 50 + this.normalEnergyFragments * 25;
+        const rewardScore = this.rewardCoins * 100 + this.rewardSilverCoins * 50 + this.rewardEnergyFragments * 25;
+        const distanceScore = Math.floor(this.distance * 10);
+        
         try {
             const response = await fetch('/api/leaderboard', {
                 method: 'POST',
@@ -2019,6 +2987,19 @@ class RooftopRunner {
                     score: Math.floor(this.score),
                     distance: Math.floor(this.distance),
                     coins: this.coins,
+                    silverCoins: this.silverCoins,
+                    energyFragments: this.energyFragments,
+                    rewardModeCount: this.rewardModeCount,
+                    maxCombo: this.maxCombo,
+                    normalCoins: this.normalCoins,
+                    normalSilverCoins: this.normalSilverCoins,
+                    normalEnergyFragments: this.normalEnergyFragments,
+                    rewardCoins: this.rewardCoins,
+                    rewardSilverCoins: this.rewardSilverCoins,
+                    rewardEnergyFragments: this.rewardEnergyFragments,
+                    normalScore: normalScore,
+                    rewardScore: rewardScore,
+                    distanceScore: distanceScore,
                     goalType: this.currentGoal ? this.currentGoal.type : null,
                     goalDescription: this.currentGoal ? this.currentGoal.description : null,
                     goalTarget: this.currentGoal ? this.currentGoal.target : null,

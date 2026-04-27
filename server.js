@@ -35,7 +35,14 @@ app.get('/api/leaderboard', (req, res) => {
 // 提交成绩
 app.post('/api/leaderboard', (req, res) => {
     try {
-        const { name, score, distance, coins, goalType, goalDescription, goalTarget, goalCompleted } = req.body;
+        const { 
+            name, score, distance, coins, silverCoins, energyFragments,
+            rewardModeCount, maxCombo,
+            normalCoins, normalSilverCoins, normalEnergyFragments,
+            rewardCoins, rewardSilverCoins, rewardEnergyFragments,
+            normalScore, rewardScore, distanceScore,
+            goalType, goalDescription, goalTarget, goalCompleted 
+        } = req.body;
         
         if (!name || !score) {
             return res.status(400).json({ error: 'Name and score are required' });
@@ -49,6 +56,19 @@ app.post('/api/leaderboard', (req, res) => {
             score: parseInt(score),
             distance: parseInt(distance) || 0,
             coins: parseInt(coins) || 0,
+            silverCoins: parseInt(silverCoins) || 0,
+            energyFragments: parseInt(energyFragments) || 0,
+            rewardModeCount: parseInt(rewardModeCount) || 0,
+            maxCombo: parseInt(maxCombo) || 0,
+            normalCoins: parseInt(normalCoins) || 0,
+            normalSilverCoins: parseInt(normalSilverCoins) || 0,
+            normalEnergyFragments: parseInt(normalEnergyFragments) || 0,
+            rewardCoins: parseInt(rewardCoins) || 0,
+            rewardSilverCoins: parseInt(rewardSilverCoins) || 0,
+            rewardEnergyFragments: parseInt(rewardEnergyFragments) || 0,
+            normalScore: parseInt(normalScore) || 0,
+            rewardScore: parseInt(rewardScore) || 0,
+            distanceScore: parseInt(distanceScore) || 0,
             goalType: goalType || null,
             goalDescription: goalDescription || null,
             goalTarget: goalTarget || null,
